@@ -7,13 +7,13 @@ import os
 load_dotenv('.env')
 DATABASE_URL = os.getenv("DATABASE_URL")
 DATABASE_URL_MD = os.getenv("DATABASE_URL_MD")
-DATABASE_URL_ADMIN = os.getenv("DATABASE_URL_ADMIN")
+DATABASE_ADMIN_URL = os.getenv("DATABASE_URL_ADMIN")
 
 print(DATABASE_URL)
 print(DATABASE_URL_MD)
-print(DATABASE_URL_ADMIN)
+print(DATABASE_ADMIN_URL)
 
-engine_admin = create_engine(DATABASE_URL_ADMIN)
+engine_admin = create_engine(DATABASE_ADMIN_URL)
 SessionLocal_admin = sessionmaker(autoflush=False, autocommit=False, bind=engine_admin)
 
 # try:
