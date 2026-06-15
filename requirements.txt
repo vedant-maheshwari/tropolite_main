@@ -1,7 +1,6 @@
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
-appscript==1.4.0
 bcrypt==3.2.2
 CacheControl==0.14.4
 certifi==2026.5.20
@@ -88,4 +87,3 @@ uvicorn==0.48.0
 uvloop==0.22.1
 watchfiles==1.2.0
 websockets==16.0
-xlwings==0.36.0
