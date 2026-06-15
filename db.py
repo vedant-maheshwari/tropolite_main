@@ -7,16 +7,16 @@ import os
 load_dotenv('.env')
 DATABASE_URL = os.getenv("DATABASE_URL")
 DATABASE_URL_MD = os.getenv("DATABASE_URL_MD")
-# DATABASE_ADMIN_URL = os.getenv("DATABASE_ADMIN_DATABASE_URL") or os.getenv("DATABASE_ADMIN_POSTGRES_URL") or os.getenv("DATABASE_ADMIN_PRISMA_DATABASE_URL")
+DATABASE_ADMIN_URL = os.getenv("DATABASE_ADMIN_DATABASE_URL") or os.getenv("DATABASE_ADMIN_POSTGRES_URL") or os.getenv("DATABASE_ADMIN_PRISMA_DATABASE_URL")
 
 # SQLAlchemy 1.4+ dropped the bare 'postgres://' alias — replace with 'postgresql://'
-# if DATABASE_ADMIN_URL and DATABASE_ADMIN_URL.startswith("postgres://"):
-#     DATABASE_ADMIN_URL = DATABASE_ADMIN_URL.replace("postgres://", "postgresql://", 1)
+if DATABASE_ADMIN_URL and DATABASE_ADMIN_URL.startswith("postgres://"):
+    DATABASE_ADMIN_URL = DATABASE_ADMIN_URL.replace("postgres://", "postgresql://", 1)
 
-# if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-#     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-DATABASE_ADMIN_URL = os.getenv("DATABASE_ADMIN_URL")
+# DATABASE_ADMIN_URL = os.getenv("DATABASE_ADMIN_URL")
 
 print(DATABASE_URL)
 print(DATABASE_URL_MD)
