@@ -16,7 +16,15 @@ import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, db
 
-cred = credentials.Certificate('excel-vault-331bd-firebase-adminsdk-fbsvc-41dd8e1c77.json')
+_firebase_creds_env = os.getenv("FIREBASE_CREDENTIALS")
+if _firebase_creds_env:
+    # Vercel/production: credentials stored as a JSON string in env var
+    _cred_dict = json.loads(_firebase_creds_env)
+    cred = credentials.Certificate(_cred_dict)
+else:
+    # Local dev: load from file
+    cred = credentials.Certificate('excel-vault-331bd-firebase-adminsdk-fbsvc-41dd8e1c77.json')
+
 firebase_admin.initialize_app(cred, {
     'databaseURL': 'https://excel-vault-331bd-default-rtdb.asia-southeast1.firebasedatabase.app'
 })
