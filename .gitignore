@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.vscode/
+uploaded_files/
+*.numbers
+.env
+admin_portal/.env
+excel-vault-*.json
+admin_portal/excel-vault-*.json
+admin_portal/
+useless/

@@ -1,0 +1,144 @@
+WITH BOM_Explosion AS (
+
+    -- ================================================================
+    -- ANCHOR LEVEL 0: The FG itself
+    -- ================================================================
+    SELECT
+        CAST(h.U_ITNO     AS NVARCHAR(100))  AS fg_item,
+        CAST(h.U_ITNO     AS NVARCHAR(100))  AS parent_item,
+        CAST(h.U_ITNO     AS NVARCHAR(100))  AS child_item,
+        CAST(itm.ItemName AS NVARCHAR(200))  AS child_name,
+        CAST(1.0          AS DECIMAL(28,10)) AS qty_per_fg,
+        CAST(0            AS INT)            AS bom_level,
+        CAST(h.U_UOM      AS NVARCHAR(50))   AS uom,
+        CAST('BOM'        AS NVARCHAR(10))   AS source,
+        CAST(h.U_ITNO     AS NVARCHAR(4000)) AS explosion_path
+    FROM [@C_BOMH] h
+    INNER JOIN OITM itm ON itm.ItemCode = h.U_ITNO
+    WHERE h.U_STATUS = 'Active'
+  AND h.U_ITNO IN (
+'FG0147','FG0171','FG0546','FG0638','FG0706','FG0739','FG0741','FG0747',
+'FG0789','FG0808','FG0840','FG0877','FG1254','FG1258','FG1405','FG1433',
+'FG1443','FG1931','FG1952','FG1966','FG1980','FGE005','FGE006','FGE108',
+'RFG011','RFG014','RFG015','RFG042','RFG076','RFG105','FG0163','FG0165',
+'FG0166','FG0167','FG0175','FG0261','FG0545','FG0750','RFG095','FG0704',
+'FG0611','FG1499','FG1080','FG0126','RFG051','FG0369','FG0020','FG0378',
+'FG0600','FG0781','FG0782','FG0003','FG0007','FG0036','FG0083','FG0125',
+'FG0375','FG0666','FG0668','FG0670','FG0705','FG0709','FG0732','FG0735',
+'FG0748','FG0834','FG0835','FG0843','FG1245','FG1249','FG1253','FG1256',
+'FG1259','FG1294','FG1317','FG1320','FG1429','FG1432','FG1444','FG1555',
+'FG1564','FG1929','RFG061','RFG063','RFG100','FG1930','FG0072','FG0733',
+'FG0694','RFG110','FG0734','FG1438','RFG013','FG0863','FG0591','FGE050',
+'FGE156','FG1976','FG1939','RFG098','RFG091','FG1970','RFG016','FG1905',
+'RFG017'
+)
+
+    UNION ALL
+
+    -- ================================================================
+    -- RECURSE BRANCH 1: BOM detail children (PK, LB, RF, etc.)
+    -- Fires for any node that has a BOM header
+    -- ================================================================
+    SELECT
+        CAST(bx.fg_item                             AS NVARCHAR(100)),
+        CAST(bx.child_item                          AS NVARCHAR(100)),
+        CAST(d.U_ITNO                               AS NVARCHAR(100)),
+        CAST(itm.ItemName                           AS NVARCHAR(200)),
+        CAST(bx.qty_per_fg * d.U_QTY              AS DECIMAL(28,10)),
+        CAST(bx.bom_level + 1                      AS INT),
+        CAST(d.U_UOM                                AS NVARCHAR(50)),
+        CAST('BOM'                                  AS NVARCHAR(10)),
+        CAST(bx.explosion_path + ' > ' + d.U_ITNO AS NVARCHAR(4000))
+    FROM BOM_Explosion bx
+    INNER JOIN [@C_BOMH] h
+        ON  h.U_ITNO   = bx.child_item
+        AND h.U_STATUS = 'Active'
+    INNER JOIN [@C_BOMD] d
+        ON  d.DocEntry = h.DocEntry
+    INNER JOIN OITM itm
+        ON  itm.ItemCode = d.U_ITNO
+    WHERE bx.bom_level < 4
+      AND (
+            bx.bom_level = 0
+            OR bx.child_item LIKE 'RF%'
+            OR bx.child_item LIKE 'FG%'
+            OR bx.child_item LIKE 'FGE%'
+            OR bx.child_item LIKE 'RFG%'
+            OR bx.child_item LIKE 'FGH%'
+            OR bx.child_item LIKE 'FB%'
+            OR bx.child_item LIKE 'FBS%'
+            OR bx.child_item LIKE 'PM%'
+            OR bx.child_item LIKE 'PX%'
+          )
+
+    UNION ALL
+
+    -- ================================================================
+    -- RECURSE BRANCH 2: Formula ingredients
+    -- Fires only when parent is FG/intermediate prefix
+    -- Join via @C_BOMH.U_FORMULA = @OFES.U_FCODE
+    -- Normalize by U_TLT (formula batch size)
+    -- ================================================================
+    SELECT
+        CAST(bx.fg_item                                  AS NVARCHAR(100)),
+        CAST(bx.child_item                               AS NVARCHAR(100)),
+        CAST(f1.U_ITEMCODE                               AS NVARCHAR(100)),
+        CAST(itm.ItemName                                AS NVARCHAR(200)),
+        CAST(
+            bx.qty_per_fg * (f1.U_QTY / NULLIF(fh.U_TLT, 0))
+                                                         AS DECIMAL(28,10)),
+        CAST(bx.bom_level + 1                           AS INT),
+        CAST(f1.U_UOM                                    AS NVARCHAR(50)),
+        CAST('FORMULA'                                   AS NVARCHAR(10)),
+        CAST(bx.explosion_path + ' > ' + f1.U_ITEMCODE AS NVARCHAR(4000))
+    FROM BOM_Explosion bx
+    INNER JOIN [@C_BOMH] h
+        ON  h.U_ITNO   = bx.child_item
+        AND h.U_STATUS = 'Active'
+    INNER JOIN [@OFES] fh
+        ON  fh.U_FCODE  = h.U_FORMULA
+        AND fh.U_STATUS = 'Active'
+    INNER JOIN [@FES1] f1
+        ON  f1.DocEntry = fh.DocEntry
+    INNER JOIN OITM itm
+        ON  itm.ItemCode = f1.U_ITEMCODE
+    WHERE bx.bom_level < 4
+      AND (
+            bx.bom_level = 0
+            OR bx.child_item LIKE 'RF%'
+            OR bx.child_item LIKE 'FG%'
+            OR bx.child_item LIKE 'FGE%'
+            OR bx.child_item LIKE 'RFG%'
+            OR bx.child_item LIKE 'FGH%'
+            OR bx.child_item LIKE 'FB%'
+            OR bx.child_item LIKE 'FBS%'
+            OR bx.child_item LIKE 'PM%'
+            OR bx.child_item LIKE 'PX%'
+          )
+
+)
+
+SELECT
+    bx.bom_level                         AS [Level],
+    bx.fg_item                           AS [FG_Item],
+    bx.parent_item                       AS [Parent_Item],
+    bx.child_item                        AS [Child_Item],
+    bx.child_name                        AS [Child_Name],
+    CAST(bx.qty_per_fg AS DECIMAL(18,6)) AS [Qty_Per_FG],
+    bx.uom                               AS [UOM],
+    bx.source                            AS [Source],
+    itb.ItmsGrpNam                       AS [Item_Group],
+    itm.U_Item_Catg                      AS [Item_Category],
+    CASE itm.TreeType
+        WHEN 'P' THEN 'Production'
+        WHEN 'A' THEN 'Assembly'
+        WHEN 'S' THEN 'Sales'
+        WHEN 'T' THEN 'Template'
+        ELSE          'Component/RM'
+    END                                  AS [Tree_Type],
+    bx.explosion_path                    AS [Path]
+FROM BOM_Explosion bx
+INNER JOIN OITM itm ON itm.ItemCode = bx.child_item
+INNER JOIN OITB itb ON itb.ItmsGrpCod = itm.ItmsGrpCod
+WHERE bx.bom_level > 0
+ORDER BY bx.explosion_path, bx.bom_level;

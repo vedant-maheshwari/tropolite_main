@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tropolite — Procurement Portal</title>
+    <meta name="description"
+        content="Tropolite internal procurement planning system — BOM to raw material requirement calculator.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ── BRAND TOKENS (Tropolite) ───────────────────── */
+        :root {
+            --crimson: #932F31;
+            --crimson-dark: #7a2628;
+            --crimson-light: #f9ecec;
+            --crimson-mid: #e8c5c5;
+            --gold: #c8a96e;
+            --gold-light: #f5edd8;
+
+            --bg: #f8f7f5;
+            --surface: #ffffff;
+            --surface2: #f4f2ef;
+            --border: #e8e5e0;
+            --border2: #d8d3cc;
+
+            --text: #1c1a18;
+            --text-muted: #7a756e;
+            --text-dim: #b8b2aa;
+
+            --green: #2e7d4f;
+            --green-light: #eaf4ee;
+            --amber: #b86c1a;
+            --amber-light: #fef3e2;
+
+            --mono: 'JetBrains Mono', Consolas, monospace;
+            --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --radius: 8px;
+            --radius-sm: 5px;
+            --radius-lg: 12px;
+            --shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 2px 8px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.10);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── TOPBAR ──────────────────────────────────────── */
+        #topbar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            height: 60px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        #topbar.visible {
+            display: flex;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .topbar-logo {
+            height: 36px;
+            width: auto;
+            display: block;
+        }
+
+        .topbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border2);
+            margin: 0 1rem;
+        }
+
+        .topbar-module {
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        /* ── VIEWS ───────────────────────────────────────── */
+        .view {
+            display: none;
+            flex: 1;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        /* ── LOGIN ───────────────────────────────────────── */
+        #loginView {
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: var(--bg);
+        }
+
+        .login-wrap {
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo img {
+            height: 72px;
+            width: auto;
+        }
+
+        .login-logo p {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-family: var(--mono);
+            margin-top: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .field {
+            margin-bottom: 1rem;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 0.6rem 0.85rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: var(--sans);
+            font-size: 0.9rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .field input:focus {
+            border-color: var(--crimson);
+            box-shadow: 0 0 0 3px rgba(147, 47, 49, 0.1);
+            background: white;
+        }
+
+        /* ── BUTTONS ─────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.55rem 1.1rem;
+            font-family: var(--sans);
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        .btn-primary {
+            background: var(--crimson);
+            color: white;
+            width: 100%;
+            justify-content: center;
+            padding: 0.7rem 1.1rem;
+        }
+
+        .btn-primary:hover {
+            background: var(--crimson-dark);
+        }
+
+        .btn-primary:disabled {
+            background: var(--border2);
+            color: var(--text-dim);
+            cursor: not-allowed;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface2);
+            color: var(--text);
+            border-color: var(--border2);
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.7rem;
+            font-size: 0.78rem;
+        }
+
+        .btn-approve {
+            background: var(--green);
+            color: white;
+            width: 100%;
+            justify-content: center;
+            padding: 0.7rem 1.1rem;
+        }
+
+        .btn-approve:hover {
+            background: #256040;
+        }
+
+        /* ── UPLOAD VIEW ─────────────────────────────────── */
+        #uploadView {
+            align-items: flex-start;
+            justify-content: center;
+            padding: 3rem 2rem;
+        }
+
+        .upload-wrap {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .page-header {
+            margin-bottom: 1.75rem;
+        }
+
+        .page-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .page-header p {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: var(--mono);
+            margin-top: 0.3rem;
+        }
+
+        /* ── WORKFLOW STEPS ──────────────────────────────── */
+        .workflow-steps {
+            display: flex;
+            margin-bottom: 1.75rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .step {
+            flex: 1;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            border-right: 1px solid var(--border);
+            opacity: 0.35;
+            transition: opacity 0.3s;
+        }
+
+        .step:last-child {
+            border-right: none;
+        }
+
+        .step.active {
+            opacity: 1;
+        }
+
+        .step.done {
+            opacity: 0.6;
+        }
+
+        .step-num {
+            font-family: var(--mono);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-bottom: 0.12rem;
+        }
+
+        .step-label {
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .step.active .step-num {
+            color: var(--crimson);
+        }
+
+        .step.done .step-num {
+            color: var(--green);
+        }
+
+        .step.active {
+            background: var(--crimson-light);
+        }
+
+        .dropzone {
+            position: relative;
+            border: 1.5px dashed var(--border2);
+            border-radius: var(--radius);
+            padding: 3rem 2rem;
+            text-align: center;
+            background: var(--surface);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .dropzone:hover,
+        .dropzone.drag-over {
+            border-color: var(--crimson);
+            background: var(--crimson-light);
+        }
+
+        .dropzone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dropzone-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            color: var(--text-muted);
+            margin: 0 auto 0.85rem;
+        }
+
+        .dropzone-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .dropzone-text strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .dropzone-hint {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            font-family: var(--mono);
+            margin-top: 0.35rem;
+        }
+
+        .file-ready {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--green);
+        }
+
+        .file-ready svg {
+            width: 1.1rem;
+            height: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .upload-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.1rem;
+        }
+
+        /* ── DEV MODE TOGGLE ─────────────────────────────── */
+        .dev-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+            font-family: var(--mono);
+        }
+
+        .toggle-track {
+            width: 30px;
+            height: 16px;
+            background: var(--border2);
+            border-radius: 8px;
+            position: relative;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="checkbox"]:checked~.toggle-track {
+            background: var(--crimson);
+        }
+
+        input[type="checkbox"]:checked~.toggle-track::after {
+            left: 16px;
+        }
+
+        input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+
+        /* ── SPINNER ──────────────────────────────────────── */
+        .spinner-wrap {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.65rem;
+            margin-top: 1rem;
+        }
+
+        .spinner-wrap.visible {
+            display: flex;
+        }
+
+        .spinner-row {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border2);
+            border-top-color: var(--crimson);
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner-text {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-family: var(--mono);
+        }
+
+        /* ── WAITING VIEW ────────────────────────────────── */
+        #waitingView {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .waiting-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .pulse-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--amber-light);
+            border: 1px solid #f0c070;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .pulse-icon::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 1px solid #f0c070;
+            animation: pulse-out 2.2s ease-out infinite;
+        }
+
+        @keyframes pulse-out {
+            0% {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(1.6);
+            }
+        }
+
+        .pulse-icon svg {
+            width: 28px;
+            height: 28px;
+            color: var(--amber);
+        }
+
+        .waiting-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .waiting-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.65;
+            font-family: var(--mono);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            font-weight: 500;
+            margin-top: 1.25rem;
+        }
+
+        .status-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .s-pending {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .s-approved {
+            background: var(--crimson-light);
+            color: var(--crimson);
+        }
+
+        .s-completed {
+            background: var(--green-light);
+            color: var(--green);
+        }
+
+        .s-error {
+            background: #fde8e8;
+            color: #c0392b;
+        }
+
+        .waiting-batch {
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            margin-top: 0.85rem;
+        }
+
+        .approve-btn-wrap {
+            margin-top: 1.75rem;
+        }
+
+        .approve-note {
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            font-family: var(--mono);
+            margin-top: 0.5rem;
+        }
+
+        /* ── RESULTS VIEW ────────────────────────────────── */
+        #resultsView {
+            flex-direction: column;
+            padding: 2rem;
+            gap: 1.25rem;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .results-header-left h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .results-header-left p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: var(--mono);
+            margin-top: 0.2rem;
+        }
+
+        .results-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        /* ── SUMMARY CARDS ───────────────────────────────── */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.15rem;
+        }
+
+        .summary-card-label {
+            font-size: 0.67rem;
+            font-family: var(--mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 0.35rem;
+        }
+
+        .summary-card-val {
+            font-size: 1.55rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        .summary-card-val.crimson {
+            color: var(--crimson);
+        }
+
+        .summary-card-val.green {
+            color: var(--green);
+        }
+
+        .summary-card-val.amber {
+            color: var(--amber);
+        }
+
+        /* ── TABS ────────────────────────────────────────── */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 0.6rem 1.1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+            margin-bottom: -1px;
+        }
+
+        .tab:hover {
+            color: var(--text);
+        }
+
+        .tab.active {
+            color: var(--crimson);
+            border-bottom-color: var(--crimson);
+        }
+
+        /* ── TABLE ───────────────────────────────────────── */
+        .table-section {
+            display: none;
+        }
+
+        .table-section.active {
+            display: block;
+        }
+
+        .table-outer {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            max-height: calc(100vh - 400px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--surface2);
+            padding: 0.65rem 1rem;
+            text-align: left;
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 0.58rem 1rem;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            color: var(--text);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--surface2);
+        }
+
+        td.num {
+            text-align: right;
+            font-family: var(--mono);
+            color: var(--text-muted);
+        }
+
+        /* Code badges */
+        .code-badge {
+            display: inline-flex;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-family: var(--mono);
+            font-size: 0.74rem;
+            font-weight: 500;
+        }
+
+        .badge-rm {
+            background: rgba(147, 47, 49, 0.08);
+            color: var(--crimson);
+        }
+
+        .badge-pk {
+            background: rgba(46, 125, 79, 0.08);
+            color: var(--green);
+        }
+
+        .badge-px {
+            background: var(--gold-light);
+            color: #8b6a1a;
+        }
+
+        /* ── TOAST ───────────────────────────────────────── */
+        #toast {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px);
+            background: var(--text);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius);
+            font-size: 0.82rem;
+            opacity: 0;
+            transition: all 0.25s;
+            pointer-events: none;
+            z-index: 999;
+            max-width: 90vw;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #toast.error {
+            background: #c0392b;
+        }
+
+        #toast.success {
+            background: var(--green);
+        }
+
+        /* ── FG GROUP TABLES (dev mode) ──────────────────── */
+        .fg-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .fg-group-header {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .fg-group-header h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: var(--mono);
+        }
+
+        .fg-qty-badge {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.08rem 0.4rem;
+        }
+
+        /* ── STOCK VIEW ───────────────────────────────────── */
+        .stock-toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.75rem;
+            border: 1px solid var(--border2);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.75rem;
+            font-family: var(--mono);
+            color: var(--text-muted);
+            background: var(--surface);
+            transition: all 0.15s;
+        }
+
+        .stock-toggle-wrap:hover {
+            background: var(--surface2);
+            color: var(--text);
+            border-color: var(--border2);
+        }
+
+        .stock-toggle-wrap.active {
+            background: var(--amber-light);
+            border-color: #f0c070;
+            color: var(--amber);
+        }
+
+        .stock-toggle-wrap .toggle-track {
+            width: 26px;
+            height: 14px;
+        }
+
+        .stock-toggle-wrap .toggle-track::after {
+            width: 10px;
+            height: 10px;
+        }
+
+        .stock-toggle-wrap input:checked~.toggle-track {
+            background: var(--amber);
+        }
+
+        .stock-toggle-wrap input:checked~.toggle-track::after {
+            left: 14px;
+        }
+
+        td.stock-avail {
+            text-align: right;
+            font-family: var(--mono);
+            color: var(--green);
+        }
+
+        td.stock-net {
+            text-align: right;
+            font-family: var(--mono);
+            font-weight: 600;
+        }
+
+        td.stock-net.deficit {
+            color: var(--crimson);
+        }
+
+        td.stock-net.surplus {
+            color: var(--green);
+        }
+
+        tr.row-deficit {
+            background: rgba(147, 47, 49, 0.04);
+        }
+
+        tr.row-deficit:hover {
+            background: rgba(147, 47, 49, 0.08);
+        }
+
+        .stock-loading-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            color: var(--text-dim);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            background: var(--surface2);
+        }
+
+        /* ── STOCK VIEW active track ──────────────────────── */
+        #stockToggleWrap.active .toggle-track {
+            background: var(--amber);
+        }
+
+        #stockToggleWrap.active .toggle-track::after {
+            left: 14px;
+        }
+
+        @media (max-width: 600px) {
+
+            #uploadView,
+            #resultsView {
+                padding: 1.5rem 1rem;
+            }
+
+            .workflow-steps {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- TOPBAR -->
+    <div id="topbar">
+        <div class="topbar-brand">
+            <img src="/static/logo.webp" alt="Tropolite" class="topbar-logo">
+            <div class="topbar-divider"></div>
+            <span class="topbar-module">Procurement Portal</span>
+        </div>
+        <div class="topbar-actions">
+            <button id="navNewUpload" class="btn btn-ghost btn-sm" style="display:none" , onclick="goToUpload()">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Upload
+            </button>
+            <button id="navSignOut" class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- ══════════════════════ LOGIN VIEW ══════════════════════ -->
+    <div id="loginView" class="view active">
+        <div class="login-wrap">
+            <div class="login-logo">
+                <img src="/static/logo.webp" alt="Tropolite">
+                <p>Procurement Planning System</p>
+            </div>
+            <div class="login-card">
+                <form id="loginForm">
+                    <div class="field">
+                        <label>Username</label>
+                        <input type="text" id="loginUser" placeholder="Enter username" required autocomplete="username">
+                    </div>
+                    <div class="field" style="margin-bottom:1.25rem">
+                        <label>Password</label>
+                        <input type="password" id="loginPass" placeholder="••••••••" required
+                            autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="loginBtn">Sign In</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════ UPLOAD VIEW ══════════════════════ -->
+    <div id="uploadView" class="view">
+        <div class="upload-wrap">
+
+            <div class="workflow-steps">
+                <div class="step active" id="step1">
+                    <div class="step-num">01</div>
+                    <div class="step-label">Upload</div>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-num">02</div>
+                    <div class="step-label">BOM Query</div>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-num">03</div>
+                    <div class="step-label">PX Conversion</div>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-num">04</div>
+                    <div class="step-label">Results</div>
+                </div>
+            </div>
+
+            <div class="page-header">
+                <h2>Upload Projection</h2>
+                <p>Excel / CSV with FG_CODE + QTY columns</p>
+            </div>
+
+            <div class="dropzone" id="dropzone">
+                <input type="file" id="fileInput"
+                    accept=".csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                <div id="dropzoneContent">
+                    <svg class="dropzone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="dropzone-text"><strong>Click to upload</strong> or drag &amp; drop</p>
+                    <p class="dropzone-hint">.xlsx &nbsp;·&nbsp; .xls &nbsp;·&nbsp; .csv</p>
+                </div>
+            </div>
+
+            <div class="spinner-wrap" id="uploadSpinner">
+                <div class="spinner-row">
+                    <div class="spinner"></div>
+                    <span class="spinner-text" id="spinnerText">Processing…</span>
+                </div>
+            </div>
+
+            <div class="upload-actions">
+                <label class="dev-toggle" for="devModeToggle" title="Show intermediate BOM table">
+                    <input type="checkbox" id="devModeToggle">
+                    <span class="toggle-track"></span>
+                    <span>Dev Mode</span>
+                </label>
+                <button id="processBtn" class="btn btn-primary" disabled style="width:auto;min-width:140px;">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Run Query
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════ WAITING VIEW ══════════════════════ -->
+    <div id="waitingView" class="view">
+        <div class="waiting-card">
+            <div class="pulse-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+
+            <h2 class="waiting-title">Awaiting PX Conversion</h2>
+            <p class="waiting-sub">
+                PX codes sent to the secure conversion system.<br>
+                Awaiting approval on the secure laptop.
+            </p>
+
+            <div id="statusPill" class="status-pill s-pending">
+                <span class="dot"></span>
+                <span id="statusText">Pending Approval</span>
+            </div>
+
+            <div class="waiting-batch" id="batchIdDisplay"></div>
+
+            <!-- <div class="approve-btn-wrap">
+            <button id="approveBtn" class="btn btn-approve">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Approve Conversion
+            </button>
+            <p class="approve-note">This triggers the watchdog on the secure laptop</p>
+        </div> -->
+        </div>
+    </div>
+
+    <!-- ══════════════════════ RESULTS VIEW ══════════════════════ -->
+    <div id="resultsView" class="view">
+        <div class="results-header">
+            <div class="results-header-left">
+                <h2>Procurement Requirements</h2>
+                <p id="resultsSubtitle">Final aggregated quantities to order</p>
+            </div>
+            <div class="results-actions">
+                <!-- Stock View toggle -->
+                <div class="stock-toggle-wrap" id="stockToggleWrap"
+                    title="Show available stock and net required quantity" onclick="toggleStockView()">
+                    <span class="toggle-track"></span>
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        style="flex-shrink:0">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M3 6h18M3 14h18M3 18h18" />
+                    </svg>
+                    Stock View
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="downloadFinalCSV()">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download CSV
+                </button>
+                <!-- <button class="btn btn-ghost btn-sm" id="newUploadResultsBtn">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    New Upload
+                </button> -->
+            </div>
+        </div>
+
+        <!-- Summary cards -->
+        <!-- <div class="summary-cards">
+            <div class="summary-card">
+                <div class="summary-card-label">Total Line Items</div>
+                <div class="summary-card-val crimson" id="cardTotalItems">—</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-label">RM Codes</div>
+                <div class="summary-card-val" id="cardRmCount">—</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-label">PK Codes</div>
+                <div class="summary-card-val green" id="cardPkCount">—</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-label">FGs Processed</div>
+                <div class="summary-card-val amber" id="cardFgCount">—</div>
+            </div>
+        </div> -->
+
+        <!-- Tabs -->
+        <div class="tab-bar">
+            <div class="tab active" onclick="switchTab(this, 'finalTable')">Final Order List</div>
+            <div class="tab" id="bomTabBtn" onclick="switchTab(this, 'bomTable')" style="display:none">Per-FG BOM Table
+            </div>
+        </div>
+
+        <!-- Final aggregated table -->
+        <div class="table-section active" id="finalTable">
+            <div class="table-outer">
+                <table>
+                    <thead>
+                        <tr id="finalTableHead">
+                            <th>Code</th>
+                            <th>Type</th>
+                            <th style="text-align:right">Required Qty</th>
+                            <th>UOM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="finalTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Per-FG BOM table (dev mode) -->
+        <div class="table-section" id="bomTable">
+            <div class="bom-table-actions" style="display: flex; justify-content: flex-end; margin-bottom: 1.25rem;">
+                <button class="btn btn-ghost btn-sm" onclick="downloadConsolidatedBomCSV()">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Consolidated BOM CSV
+                </button>
+            </div>
+            <div id="bomTablesContainer"></div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast"></div>
+
+    <!-- Serve logo as static file via FastAPI -->
+    <script>
+        // ── CONFIG ──────────────────────────────────────────────
+        // API_BASE is loaded from /static/config.json at runtime.
+        // To change the server URL (e.g. for LAN access), edit that file.
+        let API_BASE = '';
+
+        // ── STATE ────────────────────────────────────────────────
+        let currentFile = null;
+        let toastTimer = null;
+        let devMode = false;
+        let stockViewMode = false;
+        let pollingInterval = null;
+        let bomData = [];
+        let finalData = [];
+        let closingStock = {};   // { ItemCode: availableQty }
+
+        // ── TOAST ─────────────────────────────────────────────────
+        function showToast(msg, type = '') {
+            clearTimeout(toastTimer);
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'show' + (type ? ' ' + type : '');
+            toastTimer = setTimeout(() => { t.className = ''; }, 3800);
+        }
+
+        // ── VIEWS ─────────────────────────────────────────────────
+        const loginView = document.getElementById('loginView');
+        const uploadView = document.getElementById('uploadView');
+        const waitingView = document.getElementById('waitingView');
+        const resultsView = document.getElementById('resultsView');
+        const topbar = document.getElementById('topbar');
+        const navNewUpload = document.getElementById('navNewUpload');
+
+        function showView(view) {
+            [loginView, uploadView, waitingView, resultsView].forEach(v => v.classList.remove('active'));
+            view.classList.add('active');
+            if (view === loginView) {
+                topbar.classList.remove('visible');
+                navNewUpload.style.display = 'none';
+            } else {
+                topbar.classList.add('visible');
+                navNewUpload.style.display =
+                    (view === resultsView || view === waitingView) ? 'inline-flex' : 'none';
+            }
+        }
+
+        // ── WORKFLOW STEP ──────────────────────────────────────────
+        function setStep(n) {
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById(`step${i}`);
+                el.classList.remove('active', 'done');
+                if (i < n) el.classList.add('done');
+                if (i === n) el.classList.add('active');
+            }
+        }
+
+        // ── INIT ──────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const cfg = await fetch('/static/config.json').then(r => r.json());
+                API_BASE = (cfg.API_BASE || '').replace(/\/$/, '');
+            } catch (e) {
+                console.warn('config.json not found, falling back to localhost:8000');
+                API_BASE = 'http://localhost:8000';
+            }
+            if (localStorage.getItem('access_token')) showView(uploadView);
+            setStep(1);
+        });
+
+        // ── DEV MODE ──────────────────────────────────────────────
+        document.getElementById('devModeToggle').addEventListener('change', e => {
+            devMode = e.target.checked;
+            document.getElementById('bomTabBtn').style.display = devMode ? '' : 'none';
+        });
+
+        // ── DROPZONE ──────────────────────────────────────────────
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const dropzoneCont = document.getElementById('dropzoneContent');
+        const processBtn = document.getElementById('processBtn');
+        const uploadSpinner = document.getElementById('uploadSpinner');
+        const spinnerText = document.getElementById('spinnerText');
+
+        const defaultDropzoneHTML = `
+    <svg class="dropzone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+    </svg>
+    <p class="dropzone-text"><strong>Click to upload</strong> or drag &amp; drop</p>
+    <p class="dropzone-hint">.xlsx &nbsp;·&nbsp; .xls &nbsp;·&nbsp; .csv — up to 10 MB</p>
+`;
+
+        function resetUpload() {
+            currentFile = null;
+            fileInput.value = '';
+            dropzoneCont.innerHTML = defaultDropzoneHTML;
+            processBtn.disabled = true;
+            processBtn.innerHTML = `
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Run Query`;
+            uploadSpinner.classList.remove('visible');
+            setStep(1);
+        }
+
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+        dropzone.addEventListener('drop', () => dropzone.classList.remove('drag-over'));
+
+        fileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) { resetUpload(); return; }
+            currentFile = file;
+            dropzoneCont.innerHTML = `
+        <div class="file-ready">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            ${escHtml(file.name)}
+        </div>
+        <p class="dropzone-hint" style="margin-top:0.5rem">${(file.size / 1024).toFixed(1)} KB</p>
+    `;
+            processBtn.disabled = false;
+        });
+
+        // ── LOGIN ─────────────────────────────────────────────────
+        document.getElementById('loginForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true; btn.textContent = 'Signing in…';
+
+            const fd = new URLSearchParams();
+            fd.append('username', document.getElementById('loginUser').value);
+            fd.append('password', document.getElementById('loginPass').value);
+
+            try {
+                const res = await fetch(`${API_BASE}/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: fd
+                });
+                if (!res.ok) throw new Error('Invalid credentials.');
+                const data = await res.json();
+                localStorage.setItem('access_token', data.access_token);
+                showView(uploadView);
+                showToast('Signed in.', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Sign In';
+            }
+        });
+
+        // ── PROCESS ───────────────────────────────────────────────
+        processBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+            const token = localStorage.getItem('access_token');
+            if (!token) { showToast('Not logged in.', 'error'); return; }
+
+            const fd = new FormData();
+            fd.append('file', currentFile);
+
+            processBtn.disabled = true;
+            processBtn.textContent = 'Running…';
+            uploadSpinner.classList.add('visible');
+            spinnerText.textContent = 'Uploading file…';
+            setStep(2);
+
+            try {
+                spinnerText.textContent = 'Running BOM query…';
+                const res = await fetch(`${API_BASE}/upload_excel`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: fd
+                });
+
+                if (res.status === 401) {
+                    localStorage.removeItem('access_token');
+                    throw new Error('Session expired. Please sign in again.');
+                }
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || `Server error ${res.status}`);
+                }
+
+                bomData = await res.json();
+                if (!bomData || bomData.length === 0) throw new Error('BOM query returned no results.');
+
+                spinnerText.textContent = 'Sending PX codes for conversion…';
+                setStep(3);
+
+                const hasPX = bomData.some(r => (r['Item Code'] || '').startsWith('PX'));
+                if (hasPX) {
+                    showWaitingView();
+                } else {
+                    buildFinalResults(bomData, []);
+                }
+                resetUpload();
+
+            } catch (err) {
+                showToast(err.message, 'error');
+                if (err.message.includes('Session expired')) showView(loginView);
+                resetUpload();
+            }
+        });
+
+        // ── WAITING ───────────────────────────────────────────────
+        function showWaitingView() {
+            clearInterval(pollingInterval);
+            updateStatusPill('pending', 'Pending Approval');
+            document.getElementById('batchIdDisplay').textContent = '';
+            showView(waitingView);
+        }
+
+        function updateStatusPill(type, text) {
+            const pill = document.getElementById('statusPill');
+            pill.className = `status-pill s-${type}`;
+            document.getElementById('statusText').textContent = text;
+        }
+
+        // ── FIREBASE LISTENER ─────────────────────────────────────
+        (function initFB() {
+            const s1 = document.createElement('script');
+            s1.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+            s1.onload = () => {
+                const s2 = document.createElement('script');
+                s2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
+                s2.onload = () => {
+                    const cfg = {
+                        apiKey: "AIzaSyB86mO9M4KTIrT0X6TgD4kmosfh2DZHJx4",
+                        authDomain: "excel-vault-331bd.firebaseapp.com",
+                        databaseURL: "https://excel-vault-331bd-default-rtdb.asia-southeast1.firebasedatabase.app",
+                        projectId: "excel-vault-331bd",
+                        storageBucket: "excel-vault-331bd.firebasestorage.app",
+                        messagingSenderId: "967820637084",
+                        appId: "1:967820637084:web:7f1f29d783d0198c75ce59"
+                    };
+                    if (!firebase.apps.length) firebase.initializeApp(cfg);
+                    window._fbDb = firebase.database();
+                    setupFBListener();
+                };
+                document.head.appendChild(s2);
+            };
+            document.head.appendChild(s1);
+        })();
+
+        function setupFBListener() {
+            firebase.database().ref('vault_system').on('value', snap => {
+                const data = snap.val();
+                if (!data) return;
+                if (!waitingView.classList.contains('active')) return;
+
+                const status = data.status;
+                if (status === 'pending_approval') {
+                    updateStatusPill('pending', 'Pending Approval');
+                    if (data.request_data?.batch_id)
+                        document.getElementById('batchIdDisplay').textContent = `Batch: ${data.request_data.batch_id}`;
+                } else if (status === 'approved') {
+                    updateStatusPill('approved', 'Approved — Processing…');
+                } else if (status === 'completed') {
+                    const convertedResult = data.final_result || [];
+                    // Immediately delete the confidential data from Firebase using SDK
+                    firebase.database().ref('vault_system').remove();
+                    setTimeout(() => buildFinalResults(bomData, convertedResult), 700);
+
+                    // updateStatusPill('completed', 'Conversion Complete');
+                    // setTimeout(() => buildFinalResults(bomData, data.final_result || []), 700);
+                } else if (status === 'error') {
+                    updateStatusPill('error', 'Error on Secure Laptop');
+                    showToast('Watchdog reported an error.', 'error');
+                }
+            });
+        }
+
+        // ── APPROVE ───────────────────────────────────────────────
+        const approveBtn = document.getElementById('approveBtn');
+        if (approveBtn) {
+            approveBtn.addEventListener('click', async () => {
+                const btn = document.getElementById('approveBtn');
+                btn.disabled = true; btn.textContent = 'Approving…';
+                try {
+                    const res = await fetch(`${API_BASE}/approve`, { method: 'POST' });
+                    if (!res.ok) throw new Error('Approval request failed.');
+                    updateStatusPill('approved', 'Approved — Processing…');
+                    showToast('Approved. Watchdog is processing…', 'success');
+                } catch (err) {
+                    showToast(err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Approve Conversion`;
+                }
+            });
+        }
+
+        // ── STOCK VIEW TOGGLE ──────────────────────────────────────
+        function toggleStockView() {
+            stockViewMode = !stockViewMode;
+            document.getElementById('stockToggleWrap').classList.toggle('active', stockViewMode);
+            renderFinalTable();
+        }
+
+        // ── FETCH CLOSING STOCK ────────────────────────────────────
+        async function fetchClosingStock() {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE}/closing_stock`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    closingStock = await res.json();
+                } else {
+                    console.warn('Could not fetch closing stock:', res.status);
+                    closingStock = {};
+                }
+            } catch (e) {
+                console.warn('Closing stock fetch failed:', e);
+                closingStock = {};
+            }
+        }
+
+        // ── BADGE HELPER (generic, prefix-based) ─────────────────
+        function codeToClass(code) {
+            if (code.startsWith('RM')) return 'badge-rm';
+            if (code.startsWith('PK')) return 'badge-pk';
+            if (code.startsWith('LB')) return 'badge-px';
+            return 'badge-rm';   // PM, R&D, and anything else → crimson
+        }
+
+        // ── RENDER FINAL TABLE ─────────────────────────────────────
+        function renderFinalTable() {
+            const head = document.getElementById('finalTableHead');
+            if (stockViewMode) {
+                head.innerHTML = `
+                    <th>Code</th>
+                    <th>Type</th>
+                    <th style="text-align:right">Required Qty</th>
+                    <th style="text-align:right">Available Stock</th>
+                    <th style="text-align:right">Net Required</th>
+                    <th>UOM</th>`;
+            } else {
+                head.innerHTML = `
+                    <th>Code</th>
+                    <th>Type</th>
+                    <th style="text-align:right">Required Qty</th>
+                    <th>UOM</th>`;
+            }
+
+            document.getElementById('finalTableBody').innerHTML = finalData.map(row => {
+                const cls = codeToClass(row.code);
+                const uomTxt = row.uom
+                    ? `<span style="color:var(--text-dim);font-family:var(--mono);font-size:0.76rem">${escHtml(row.uom)}</span>`
+                    : '';
+                const reqFmt = row.qty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+                // Show the 2-char prefix as the "type" badge
+                const typeLabel = row.code.slice(0, 2).toUpperCase();
+
+                if (stockViewMode) {
+                    const avail = parseFloat(closingStock[row.code] ?? 0);
+                    const net = row.qty - avail;
+                    const isDeficit = net > 0;
+                    const netVal = isDeficit ? net : 0;
+                    const availFmt = avail.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+                    const netFmt = netVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+                    const netDisplay = isDeficit
+                        ? `<span style="font-size:0.7rem;margin-right:2px">▲</span>${netFmt}`
+                        : `<span style="font-size:0.7rem;margin-right:2px">✓</span>${netFmt}`;
+                    return `<tr class="${isDeficit ? 'row-deficit' : ''}">` +
+                        `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
+                        `<td><span class="code-badge ${cls}">${typeLabel}</span></td>` +
+                        `<td class="num">${reqFmt}</td>` +
+                        `<td class="stock-avail">${availFmt}</td>` +
+                        `<td class="stock-net ${isDeficit ? 'deficit' : 'surplus'}">${netDisplay}</td>` +
+                        `<td>${uomTxt}</td>` +
+                        `</tr>`;
+                } else {
+                    return `<tr>` +
+                        `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
+                        `<td><span class="code-badge ${cls}">${typeLabel}</span></td>` +
+                        `<td class="num">${reqFmt}</td>` +
+                        `<td>${uomTxt}</td>` +
+                        `</tr>`;
+                }
+            }).join('');
+        }
+
+        // ── BUILD FINAL RESULTS ───────────────────────────────────
+        async function buildFinalResults(bom, pxConverted) {
+            setStep(4);
+
+            // ── DATA-DRIVEN LEAF DETECTION ─────────────────────────
+            // Build a Set of every item that appears as a Parent_Item.
+            // Any Child_Item NOT in this set is a true leaf (procurement item).
+            // This is prefix-agnostic: PM, LB, RM, PK, R&D, and any future
+            // codes are all handled correctly without hardcoded lists.
+            const parentSet = new Set(
+                bom.map(r => r['Parent_Code']).filter(Boolean)
+            );
+
+            const agg = {};
+            for (const row of bom) {
+                const code = row['Item Code'] || '';
+                if (!code) continue;
+
+                // PX items are sent for Firebase conversion — exclude from direct agg
+                if (code.startsWith('PX')) continue;
+
+                // Skip intermediate/semi-finished nodes (they appear as a parent elsewhere)
+                if (parentSet.has(code)) continue;
+
+                const qty = parseFloat(row['Item Projection']) || 0;
+                const name = row['Finish Good Name'] || '';
+                const uom = row['Inventory_UOM'] || '';
+
+                if (!agg[code]) agg[code] = { code, name, qty: 0, uom };
+                agg[code].qty += qty;
+            }
+
+            // Merge converted PX → MD results from Firebase
+            for (const entry of pxConverted) {
+                for (const [code, qty] of Object.entries(entry)) {
+                    if (!agg[code]) agg[code] = { code, name: '', qty: 0, uom: 'kg' };
+                    agg[code].qty += parseFloat(qty) || 0;
+                }
+            }
+
+            finalData = Object.values(agg).sort((a, b) => a.code.localeCompare(b.code));
+
+            showView(resultsView);
+            showToast(`${finalData.length} items ready.`, 'success');
+            renderFinalTable();
+
+            // Fetch closing stock after showing results (non-blocking)
+            await fetchClosingStock();
+            if (stockViewMode) renderFinalTable();
+
+            // Dev mode BOM tables
+            if (devMode) {
+                document.getElementById('bomTabBtn').style.display = '';
+                renderBomTables(bom);
+            }
+        }
+
+        function renderBomTables(bom) {
+            const groups = {};
+            for (const row of bom) {
+                const fg = row['Finish Good'] || 'Unknown';
+                if (!groups[fg]) groups[fg] = { rows: [] };
+                groups[fg].rows.push(row);
+            }
+
+            const container = document.getElementById('bomTablesContainer');
+            container.innerHTML = '';
+
+            for (const [fg, grp] of Object.entries(groups)) {
+                const cols = Object.keys(grp.rows[0]);
+                const div = document.createElement('div');
+                div.className = 'fg-group';
+                div.innerHTML = `
+            <div class="fg-group-header">
+                <h3>${escHtml(fg)}</h3>
+            </div>
+            <div class="table-outer" style="max-height:260px">
+                <table>
+                    <thead><tr>${cols.map(c => `<th>${escHtml(c)}</th>`).join('')}</tr></thead>
+                    <tbody>${grp.rows.map(row =>
+                    `<tr>${cols.map(c => {
+                        const val = row[c] ?? '';
+                        if (c === 'Item Code') {
+                            const code = String(val);
+                            const cls = code.startsWith('RM') ? 'badge-rm'
+                                : code.startsWith('PK') ? 'badge-pk'
+                                    : code.startsWith('PX') ? 'badge-px' : '';
+                            return `<td><span class="code-badge ${cls}">${escHtml(code)}</span></td>`;
+                        }
+                        const isNum = ['qty', 'required', 'level'].some(h => c.toLowerCase().includes(h));
+                        return `<td${isNum ? ' class="num"' : ''}>${escHtml(String(val))}</td>`;
+                    }).join('')}</tr>`
+                ).join('')}</tbody>
+                </table>
+            </div>
+        `;
+                container.appendChild(div);
+            }
+        }
+
+        // ── TABS ──────────────────────────────────────────────────
+        function switchTab(el, id) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.table-section').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById(id).classList.add('active');
+        }
+
+        // ── CSV DOWNLOAD ──────────────────────────────────────────
+        function downloadFinalCSV() {
+            if (!finalData.length) return;
+            let cols, rows;
+            if (stockViewMode) {
+                cols = ['Code', 'Type', 'Required Qty', 'Available Stock', 'Net Required', 'UOM'];
+                rows = finalData.map(r => {
+                    const avail = parseFloat(closingStock[r.code] ?? 0);
+                    const net = r.qty - avail;
+                    const netVal = net > 0 ? net : 0;
+                    const safeUom = (r.uom || '').replace(/"/g, '""');
+                    return [
+                        `"${r.code}"`,
+                        `"${r.code.slice(0, 2).toUpperCase()}"`,
+                        r.qty.toFixed(4),
+                        avail.toFixed(4),
+                        netVal.toFixed(4),
+                        `"${safeUom}"`
+                    ].join(',');
+                });
+            } else {
+                cols = ['Code', 'Type', 'Required Qty', 'UOM'];
+                rows = finalData.map(r => {
+                    const safeUom = (r.uom || '').replace(/"/g, '""');
+                    return [`"${r.code}"`, `"${r.code.slice(0, 2).toUpperCase()}"`, r.qty.toFixed(4), `"${safeUom}"`].join(',');
+                });
+            }
+            const lines = [cols.map(c => `"${c}"`).join(','), ...rows];
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `procurement_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        }
+
+        function downloadConsolidatedBomCSV() {
+            if (!bomData.length) return;
+
+            const cols = Object.keys(bomData[0]);
+            const csvRows = bomData.map(row => {
+                return cols.map(c => {
+                    const val = row[c] ?? '';
+                    let strVal = String(val);
+                    if (strVal.includes('"') || strVal.includes(',') || strVal.includes('\n') || strVal.includes('\r')) {
+                        strVal = '"' + strVal.replace(/"/g, '""') + '"';
+                    }
+                    return strVal;
+                }).join(',');
+            });
+
+            const lines = [cols.map(c => `"${c.replace(/"/g, '""')}"`).join(','), ...csvRows];
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `consolidated_bom_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        }
+
+        // ── SIGN OUT ──────────────────────────────────────────────
+        function signOut() {
+            localStorage.removeItem('access_token');
+            clearInterval(pollingInterval);
+            bomData = []; finalData = [];
+            document.getElementById('loginForm').reset();
+            resetUpload();
+            showView(loginView);
+        }
+
+        function goToUpload() {
+            clearInterval(pollingInterval);
+            bomData = []; finalData = []; closingStock = {};
+            document.getElementById('finalTableBody').innerHTML = '';
+            document.getElementById('bomTablesContainer').innerHTML = '';
+            document.getElementById('devModeToggle').checked = false;
+            document.getElementById('stockToggleWrap').classList.remove('active');
+            devMode = false;
+            stockViewMode = false;
+            document.getElementById('bomTabBtn').style.display = 'none';
+            // Reset table head back to default columns
+            document.getElementById('finalTableHead').innerHTML = `
+                <th>Code</th>
+                <th>Type</th>
+                <th style="text-align:right">Required Qty</th>
+                <th>UOM</th>`;
+            resetUpload();
+            showView(uploadView);
+        }
+
+        const navNewUploadBtn = document.getElementById('navNewUpload');
+        if (navNewUploadBtn) {
+            navNewUploadBtn.addEventListener('click', goToUpload);
+        }
+        const newUploadResultsBtn = document.getElementById('newUploadResultsBtn');
+        if (newUploadResultsBtn) {
+            newUploadResultsBtn.addEventListener('click', goToUpload);
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+
+</html>

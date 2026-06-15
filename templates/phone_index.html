@@ -1,0 +1,198 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laptop A - Batch Excel Converter</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        input { width: 90%; padding: 5px; }
+        .controls { margin-bottom: 20px; }
+        button { padding: 10px 15px; cursor: pointer; margin-right: 10px; }
+        .process-btn { background-color: #007bff; color: white; border: none; font-weight: bold; }
+        .status { padding: 15px; background-color: #f8f9fa; border-radius: 5px; border-left: 5px solid #007bff; }
+    </style>
+</head>
+<body>
+
+    <h2>Secure Batch Conversion (FG to RM)</h2>
+    
+    <div class="controls">
+        <button onclick="addRow()">+ Add Row</button>
+        <button class="process-btn" onclick="sendBatchRequest()">Connect & Process Batch</button>
+    </div>
+
+    <table id="conversionTable">
+        <thead>
+            <tr>
+                <th>Finished Good (FG)</th>
+                <th>Process Code (PX)</th>
+                <th>Quantity</th>
+                <th>Raw Material (RM) Result</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr>
+                <td><input type="text" class="fg-input" placeholder="e.g. FG-101"></td>
+                <td><input type="text" class="px-input" placeholder="e.g. PX-992"></td>
+                <td><input type="number" class="qty-input" value="1"></td>
+                <td class="rm-result" style="color: gray;">Waiting...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="status">
+        <h3 id="ui-status" style="margin: 0;">Status: Idle</h3>
+    </div>
+
+    <script>
+        // --- A. SETUP FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyB86mO9M4KTIrT0X6TgD4kmosfh2DZHJx4",
+            authDomain: "excel-vault-331bd.firebaseapp.com",
+            databaseURL: "https://excel-vault-331bd-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "excel-vault-331bd",
+            storageBucket: "excel-vault-331bd.firebasestorage.app",
+            messagingSenderId: "967820637084",
+            appId: "1:967820637084:web:7f1f29d783d0198c75ce59"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- B. UI LOGIC: ADD NEW ROWS ---
+        function addRow() {
+            const tbody = document.getElementById('tableBody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" class="fg-input" placeholder="e.g. FG-XXX"></td>
+                <td><input type="text" class="px-input" placeholder="e.g. PX-XXX"></td>
+                <td><input type="number" class="qty-input" value="1"></td>
+                <td class="rm-result" style="color: gray;">Waiting...</td>
+            `;
+            tbody.appendChild(newRow);
+        }
+
+        // --- C. SEND DATA TO FASTAPI ---
+        async function sendBatchRequest() {
+            document.getElementById('ui-status').innerText = "Status: Packaging Data...";
+
+            // 1. Gather all rows from the table
+            const rows = document.querySelectorAll('#tableBody tr');
+            const itemsArray = [];
+
+            rows.forEach((row) => {
+                const fg = row.querySelector('.fg-input').value;
+                const px = row.querySelector('.px-input').value;
+                const qty = row.querySelector('.qty-input').value;
+
+                // Only add rows that actually have data
+                if (fg || px) {
+                    itemsArray.push({
+                        fg_code: fg,
+                        px_code: px,
+                        quantity: parseInt(qty) || 0
+                    });
+                }
+            });
+
+            if (itemsArray.length === 0) {
+                alert("Please enter at least one row of data.");
+                document.getElementById('ui-status').innerText = "Status: Idle";
+                return;
+            }
+
+            // 2. Build the exact payload FastAPI expects
+            const payload = {
+                batch_id: "BATCH-" + Math.floor(Math.random() * 10000), // Generate a random batch ID
+                items: itemsArray
+            };
+
+            document.getElementById('ui-status').innerText = "Status: Sending to Database...";
+
+            // 3. Send to our local FastAPI server
+            try {
+                await fetch('/api/conversion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (error) {
+                document.getElementById('ui-status').innerText = "Status: Error connecting to FastAPI.";
+                console.error(error);
+            }
+        }
+
+        // --- D. LISTEN FOR THE BULK RESULT IN REAL-TIME ---
+        db.ref('vault_system').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            
+            const statusText = document.getElementById('ui-status');
+
+            if (data.status === 'pending_approval') {
+                statusText.innerText = "Status: Waiting for Admin to Approve on Phone...";
+            } 
+            else if (data.status === 'approved') {
+                statusText.innerText = "Status: Admin Approved! Laptop B is calculating matrix...";
+            }
+            else if (data.status === 'completed' && data.final_result) {
+            statusText.innerText = "Status: Success! Matrix calculated.";
+            
+            // 1. THE TRUTH SERUM: Print the exact data to the browser console
+            console.log("Raw Data from Laptop B:", data.final_result);
+            
+            const rows = document.querySelectorAll('#tableBody tr');
+            const resultsArray = data.final_result;
+            
+            let resultIndex = 0; // We keep a separate counter for the results array
+
+            // 2. Loop through the HTML rows exactly like we did when sending
+            rows.forEach((row) => {
+                const fg = row.querySelector('.fg-input').value;
+                const px = row.querySelector('.px-input').value;
+                const resultCell = row.querySelector('.rm-result');
+
+                // Only update the row if it actually had data in it
+                if (fg || px) {
+                    // Ensure a result actually exists for this index
+                    // Ensure a result actually exists for this index
+                if (resultsArray[resultIndex] !== undefined) {
+                    
+                    // THE FIX: Check if it's an object with rm_code, or just use the raw string directly!
+                    let finalCode = resultsArray[resultIndex];
+                    if (typeof finalCode === 'object' && finalCode !== null) {
+                        finalCode = finalCode.rm_code; 
+                    }
+                    
+                    // Handle cases where Excel might have returned a blank cell (null)
+                    if (finalCode === null || finalCode === undefined || finalCode === "") {
+                        resultCell.innerText = "Not Found in Excel";
+                        resultCell.style.color = "red";
+                    } else {
+                        resultCell.innerText = finalCode;
+                        resultCell.style.color = "green";
+                        resultCell.style.fontWeight = "bold";
+                    }
+                }
+                    resultIndex++; // Move to the next result from our backend
+                }
+            });
+            db.ref('vault_system').update({
+            request_data: null,  // Destroys the input data
+            final_result: null,  // Destroys the output data
+            status: 'idle'       // Resets the system
+        });
+        }
+            else if (data.status === 'idle') {
+                statusText.innerText = "Status: Idle";
+            }
+        });
+    </script>
+</body>
+</html>
