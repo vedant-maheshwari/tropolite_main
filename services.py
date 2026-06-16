@@ -251,244 +251,7 @@ def check_file_structure_and_conditions(filepath):
 
 ## ----------------------------------------------- vikas query -------------------------------------------- 
 
-# def run_query(json_payload: str, db: Session):
-#     import json as json_lib
-
-#     # Parse the JSON back to build VALUES rows directly
-#     items = json_lib.loads(json_payload)
-
-#     # Build: ('FG001', 100), ('FG002', 200), ...
-#     values_rows = ",\n".join(
-#         f"(N'{row['FG_Code'].replace(chr(39), chr(39)*2)}', {row['FG_Qty']})"
-#         for row in items
-#     )
-
-#     raw_conn = db.connection().connection
-#     cursor = raw_conn.cursor()
-
-#     sql = f"""
-#         SET NOCOUNT ON;
-
-#         IF OBJECT_ID('tempdb..#InputData') IS NOT NULL DROP TABLE #InputData;
-#         IF OBJECT_ID('tempdb..#final') IS NOT NULL DROP TABLE #final;
-#         IF OBJECT_ID('tempdb..#dd') IS NOT NULL DROP TABLE #dd;
-
-#         CREATE TABLE #InputData (
-#             U_ItemCode NVARCHAR(50) COLLATE DATABASE_DEFAULT,
-#             U_Quantity NUMERIC(19,6)
-#         );
-
-#         INSERT INTO #InputData (U_ItemCode, U_Quantity)
-#         VALUES
-#         {values_rows};
-
-#         With RPL (
-#         U_FGCODE, U_FORMULAID, U_ITEMCODE, U_QTYINDISPLAYUOM, U_FGWHSE,
-#         Level, Formula_Weight, Parent_Code, Base_Requirement,
-#         Finish_Goods_Help, Component_Item_Help, Item_Group,
-#         Inventory_UOM, Parent_Inventory_UOM, Item_Type, U_RevisionNO
-#         ) As
-#         (
-#             SELECT
-#             T0.U_ITNO AS 'Finish Good', T0.U_FORMULA As 'Formula ID', T1.U_ITNO As 'Item Code',
-#             T1.U_QTY As 'Base Quantity', T0.U_WHS As 'FG Warehouse', 1 as 'Level', 0 as 'Total Formula Weight',
-#             T0.U_ITNO As 'Parent_Code', T1.U_QTY*1 as 'Base_Req',
-#             Cast(Concat(T0.U_ITNO,'-',T0.U_ITNO) as nvarchar(MAX)) as 'Finish_Goods_Help',
-#             Cast(Concat(T0.U_ITNO,'-',T1.U_ITNO) as nvarchar(MAX)) as 'Component_Item_Help',
-#             T3.ItmsGrpNam as 'Item Group', T2.InvntryUom as 'Inventory UOM',
-#             T4.InvntryUom as 'Parent Inventory UOM', 'BOM Item' As 'Item_Type', T0.U_REVISION
-
-#             FROM [@C_BOMH] T0
-#             inner JOIN [@C_BOMD] T1 ON T0.DocEntry = T1.DocEntry
-#             LEFT OUTER JOIN OITM T2 ON T1.U_ITNO = T2.ItemCode
-#             LEFT OUTER JOIN OITB T3 ON T2.ItmsGrpCod = T3.ItmsGrpCod
-#             LEFT OUTER JOIN OITM T4 ON T0.U_ITNO = T4.ItemCode
-#             where T0.U_STATUS ='Active'
-
-#             Union All
-
-#             SELECT
-#             T0.U_ITNO AS 'Finish Good', T0.U_FORMULA As 'Formula ID', T3.U_ITEMCODE As 'Item Code',
-#             T3.U_QTY As 'Base Quantity', T0.U_WHS As 'FG Warehouse', 1 as 'Level',
-#             T2.U_TLT as 'Total Formula Weight', T0.U_ITNO As 'Parent_Code',
-#             T3.U_QTY/nullif(T2.U_TLT,0) as 'Base_Req',
-#             Cast(Concat(T0.U_ITNO,'-',T0.U_ITNO) as nvarchar(MAX)) as 'Finish_Goods_Help',
-#             Cast(Concat(T0.U_ITNO,'-',T3.U_ITEMCODE) as nvarchar(MAX)) as 'Component_Item_Help',
-#             T5.ItmsGrpNam as 'Item Group', T4.InvntryUom as 'Inventory UOM',
-#             T6.InvntryUom as 'Parent Inventory UOM', 'Formula Item' As 'Item_Type', T0.U_REVISION
-
-#             FROM dbo.[@C_BOMH] T0
-#             LEFT OUTER JOIN dbo.[@OFES] T2 ON T0.U_FORMULA = T2.U_FCODE
-#             LEFT OUTER JOIN dbo.[@FES1] T3 ON T3.DocEntry = T2.DocEntry
-#             LEFT OUTER JOIN OITM T4 ON T3.U_ITEMCODE = T4.ItemCode
-#             LEFT OUTER JOIN OITB T5 ON T4.ItmsGrpCod = T5.ItmsGrpCod
-#             LEFT OUTER JOIN OITM T6 ON T0.U_ITNO = T6.ItemCode
-#             Where T2.U_STATUS ='Active' and T0.U_STATUS='Active'
-
-#             Union All
-
-#             SELECT
-#             T0.U_FGCODE AS 'Finish Good', T1.U_FORMULA As 'Formula ID', T2.U_ITNO As 'Item Code',
-#             T2.U_QTY As 'Base Quantity', T1.U_WHS As 'FG Warehouse', LEVEL + 1,
-#             0 as 'Total Formula Weight', T1.U_ITNO as 'Parent_Code',
-#             T2.U_QTY*1 as 'Base_Req',
-#             Cast(Concat(T0.U_FGCODE,'-',T1.U_ITNO) as nvarchar(MAX)) as 'Finish_Goods_Help',
-#             Cast(Concat(T1.U_ITNO,'-',T2.U_ITNO) as nvarchar(MAX)) as 'Component_Item_Help',
-#             T5.ItmsGrpNam as 'Item Group', T4.InvntryUom as 'Inventory UOM',
-#             T6.InvntryUom as 'Parent Inventory UOM', 'BOM Item' As 'Item_Type', T1.U_REVISION
-
-#             FROM RPL T0, dbo.[@C_BOMH] T1
-#             INNER JOIN dbo.[@C_BOMD] T2 ON T1.DocEntry = T2.DocEntry
-#             INNER JOIN OITM T4 ON T2.U_ITNO = T4.ItemCode
-#             INNER JOIN OITB T5 ON T4.ItmsGrpCod = T5.ItmsGrpCod
-#             INNER JOIN OITM T6 ON T1.U_ITNO = T6.ItemCode
-#             Where T0.U_ITEMCODE = T1.U_ITNO and Level < 4
-
-#             Union All
-
-#             Select
-#             T0.U_FGCODE AS 'Finish Good', T1.U_FORMULA As 'Formula ID', T3.U_ITEMCODE As 'Item Code',
-#             T3.U_QTY As 'Base Quantity', T1.U_WHS As 'FG Warehouse', LEVEL + 1,
-#             T2.U_TLT as 'Total Formula Weight', T1.U_ITNO as 'Parent_Code',
-#             T3.U_QTY/nullif(T2.U_TLT,0) as 'Base_Req',
-#             Cast(Concat(T0.U_FGCODE,'-',T1.U_ITNO) as nvarchar(MAX)) as 'Finish_Goods_Help',
-#             Cast(Concat(T0.U_FGCODE,'-',T3.U_ITEMCODE) as nvarchar(MAX)) as 'Component_Item_Help',
-#             T5.ItmsGrpNam as 'Item Group', T4.InvntryUom as 'Inventory UOM',
-#             T6.InvntryUom as 'Parent Inventory UOM', 'Formula Item' As 'Item_Type', T1.U_REVISION
-
-#             FROM RPL T0
-#             INNER JOIN [@C_BOMH] T1 ON T0.U_ITEMCODE = T1.U_ITNO
-#             INNER JOIN [@OFES] T2 ON T1.U_FORMULA = T2.U_FCODE
-#             INNER JOIN [@FES1] T3 ON T2.DocEntry = T3.DocEntry
-#             INNER JOIN OITM T4 ON T3.U_ITEMCODE = T4.ItemCode
-#             INNER JOIN OITB T5 ON T4.ItmsGrpCod = T5.ItmsGrpCod
-#             INNER JOIN OITM T6 ON T1.U_ITNO = T6.ItemCode
-#             WHERE T2.U_STATUS='Active'
-#             AND T0.Level < 4
-#             AND ISNULL(T0.U_ITEMCODE,'') <> 'RM2159'
-#             AND T3.U_ITEMCODE <> T0.U_ITEMCODE
-#             AND T1.U_STATUS = T2.U_STATUS
-#         )
-
-#         Select distinct U_FGCODE As 'Finish Good', U_FORMULAID As 'Formula ID',
-#         C.U_ITEMCODE As 'Item Code',
-#         U_QTYINDISPLAYUOM As 'Base Quantity', U_FGWHSE As 'FG Warehouse',
-#         Level, Formula_Weight as 'Total Formula Weight',
-#         Parent_Code as 'Parent_Code',
-#         Base_Requirement as 'Base_Requirement',
-#         Row_Number() Over (Partition by U_FGCODE Order By U_FGCODE) As 'Count',
-#         Finish_Goods_Help As 'Finish_Goods_Help',
-#         Component_Item_Help AS 'Component_Item_Help',
-#         Item_Group As 'Item Group',
-#         Inventory_UOM as 'Inventory UOM',
-#         Parent_Inventory_UOM as 'Parent Inventory UOM',
-#         Item_Type,
-#         convert(numeric(19,2), E.U_Quantity) 'Projection Qty',
-#         convert(numeric(19,2), 0.00) 'Item Projection',
-#         convert(numeric(19,2), 0.00) 'Convertion Factor',
-#         convert(numeric(19,2), 0.00) 'Item Projection in KG',
-#         convert(nvarchar(100),'') 'Projection_UOM'
-#         into #final
-#         From RPL C, #InputData E
-#         WHERE C.U_FGCODE = E.U_ItemCode COLLATE DATABASE_DEFAULT
-#         AND E.U_Quantity > 0.00
-#         Group By U_FGCODE, U_FORMULAID, C.U_ITEMCODE, U_QTYINDISPLAYUOM,
-#         U_FGWHSE, Level, Formula_Weight, Parent_Code, Base_Requirement,
-#         Finish_Goods_Help, Component_Item_Help, Item_Group,
-#         Inventory_UOM, Parent_Inventory_UOM, Item_Type, E.U_Quantity
-#         option (maxrecursion 0);
-
-#         update t
-#         set [Convertion Factor] = isnull(cd1.U_CONFACTR,1)
-#         from #final t,
-#         (select distinct cd.U_CONFACTR, ch.U_ITNO
-#          from [@C_ITMSTR] ch, [@C_ITMUOM] cd
-#          where cd.DocEntry = ch.DocEntry and cd.U_TOUOM <> '') cd1
-#         where t.Parent_Code = cd1.U_ITNO COLLATE DATABASE_DEFAULT;
-
-#         update t
-#         set [Convertion Factor] = 1
-#         from #final t where [Convertion Factor] = 0.00;
-
-#         update t
-#         set [Projection Qty] = c.U_Quantity,
-#             Projection_UOM = 'KG'
-#         from #final t, #InputData c
-#         where t.[Finish Good] = c.U_ItemCode COLLATE DATABASE_DEFAULT
-#         and c.U_Quantity <> 0.00;
-
-#         select [Finish Good], [Item Code], Parent_Code,
-#         (case when [Projection Qty] = 0.00 then [Projection Qty]
-#               else Base_Requirement end) Base_Requirement,
-#         (Base_Requirement * [Projection Qty] * [Convertion Factor]) ff
-#         into #dd
-#         from #final
-#         where [Item Code] in (select [Item Code] from #final where Item_Type <> 'BOM Item');
-
-#         update t
-#         set [Item Projection] =
-#             case when Item_Type = 'BOM Item'
-#                  then (case when [Inventory UOM] = 'NO'
-#                             then Base_Requirement * [Projection Qty] * [Convertion Factor]
-#                             else Base_Requirement * [Projection Qty]
-#                        end)
-#                  else Base_Requirement * [Projection Qty] * [Convertion Factor]
-#             end
-#         from #final t;
-
-#         update t
-#         set [Projection Qty] = T1.[Item Projection]
-#         from #final t, #final t1
-#         where t.Parent_Code = T1.[Item Code] COLLATE DATABASE_DEFAULT
-#         AND T.Level <> 1 AND T1.Level = 1
-#         and t.[Finish Good] = t1.Parent_Code COLLATE DATABASE_DEFAULT
-#         AND T1.[Item Projection] <> 0;
-
-#         update t
-#         set [Item Projection] = Base_Requirement * [Projection Qty] * [Convertion Factor]
-#         from #final t
-#         where Item_Type = 'Formula Item' and Level > 1;
-
-#         update t
-#         set [Item Projection] = Base_Requirement * [Projection Qty] * [Convertion Factor]
-#         from #final t
-#         where Item_Type = 'BOM Item' and Level > 1;
-
-#         update t
-#         set [Item Projection in KG] =
-#             case when item_type = 'BOM'
-#                  then (case when Projection_UOM = 'NO'
-#                             then Base_Requirement * [Convertion Factor] * [Projection Qty]
-#                             else Base_Requirement * [Projection Qty]
-#                        end)
-#                  else Base_Requirement * [Projection Qty] * [Convertion Factor]
-#             end
-#         from #final t;
-
-#         select [Item Group], [Finish Good], Parent_Code,
-#         (select ItemName from oitm where ItemCode = [Finish Good]) 'Finish Good Name',
-#         [Item Code], Item_Type, [Item Projection],
-#         [Inventory UOM] as Inventory_UOM
-#         from #final
-#         Order By [Finish Good], Level, [Item Code], [Base Quantity];
-
-#         IF OBJECT_ID('tempdb..#dd') IS NOT NULL DROP TABLE #dd;
-#         IF OBJECT_ID('tempdb..#final') IS NOT NULL DROP TABLE #final;
-#         IF OBJECT_ID('tempdb..#InputData') IS NOT NULL DROP TABLE #InputData;
-#     """
-
-#     cursor.execute(sql)
-#     columns = [col[0] for col in cursor.description]
-#     rows = cursor.fetchall()
-#     cursor.close()
-
-#     return [dict(zip(columns, row)) for row in rows]
-
-# ---------------------------------------------------------------------------------------
-
-# ----------------------------------------------- vedant query -----------------------------------------------
-
-def run_query(json_payload: str, db: Session) -> list[dict]:
+def run_query(json_payload: str, db: Session):
     import json as json_lib
 
     # Parse the JSON back to build VALUES rows directly
@@ -510,8 +273,8 @@ def run_query(json_payload: str, db: Session) -> list[dict]:
 
         DECLARE @FGQty TABLE
         (
-            FG_Code NVARCHAR(50),
-            FG_Qty  NUMERIC(19,4)
+        FG_Code NVARCHAR(50),
+        FG_Qty NUMERIC(19,4)
         );
 
         INSERT INTO @FGQty (FG_Code, FG_Qty)
@@ -520,138 +283,138 @@ def run_query(json_payload: str, db: Session) -> list[dict]:
 
         ;WITH BOM_Explosion AS (
 
-            -- ================================================================
-            -- ANCHOR LEVEL 0: The FG itself, seeded with requested qty
-            -- ================================================================
-            SELECT
-                CAST(h.U_ITNO     AS NVARCHAR(100))  AS fg_item,
-                CAST(h.U_ITNO     AS NVARCHAR(100))  AS parent_item,
-                CAST(h.U_ITNO     AS NVARCHAR(100))  AS child_item,
-                CAST(itm.ItemName AS NVARCHAR(200))  AS child_name,
-                CAST(q.FG_Qty     AS DECIMAL(28,10)) AS qty_per_fg,
-                CAST(0            AS INT)            AS bom_level,
-                CAST(h.U_UOM      AS NVARCHAR(50))   AS uom,
-                CAST('BOM'        AS NVARCHAR(10))   AS source,
-                CAST(h.U_ITNO     AS NVARCHAR(4000)) AS explosion_path
-            FROM [@C_BOMH] h
-            INNER JOIN OITM itm ON itm.ItemCode = h.U_ITNO
-            INNER JOIN @FGQty q ON q.FG_Code = h.U_ITNO
-            WHERE h.U_STATUS = 'Active'
+        -- ================================================================
+        -- ANCHOR LEVEL 0: The FG itself, seeded with requested qty
+        -- ================================================================
+        SELECT
+        CAST(h.U_ITNO AS NVARCHAR(100)) AS fg_item,
+        CAST(h.U_ITNO AS NVARCHAR(100)) AS parent_item,
+        CAST(h.U_ITNO AS NVARCHAR(100)) AS child_item,
+        CAST(itm.ItemName AS NVARCHAR(200)) AS child_name,
+        CAST(q.FG_Qty AS DECIMAL(28,10)) AS qty_per_fg,
+        CAST(0 AS INT) AS bom_level,
+        CAST(h.U_UOM AS NVARCHAR(50)) AS uom,
+        CAST('BOM' AS NVARCHAR(10)) AS source,
+        CAST(h.U_ITNO AS NVARCHAR(4000)) AS explosion_path
+        FROM [@C_BOMH] h
+        INNER JOIN OITM itm ON itm.ItemCode = h.U_ITNO
+        INNER JOIN @FGQty q ON q.FG_Code = h.U_ITNO
+        WHERE h.U_STATUS = 'Active'
 
-            UNION ALL
+        UNION ALL
 
-            -- ================================================================
-            -- RECURSE BRANCH 1: BOM detail children (PK, LB, RF, etc.)
-            -- ================================================================
-            SELECT
-                CAST(bx.fg_item                             AS NVARCHAR(100)),
-                CAST(bx.child_item                          AS NVARCHAR(100)),
-                CAST(d.U_ITNO                               AS NVARCHAR(100)),
-                CAST(itm.ItemName                           AS NVARCHAR(200)),
-                CAST(bx.qty_per_fg * d.U_QTY              AS DECIMAL(28,10)),
-                CAST(bx.bom_level + 1                      AS INT),
-                CAST(d.U_UOM                                AS NVARCHAR(50)),
-                CAST('BOM'                                  AS NVARCHAR(10)),
-                CAST(bx.explosion_path + ' > ' + d.U_ITNO AS NVARCHAR(4000))
-            FROM BOM_Explosion bx
-            INNER JOIN [@C_BOMH] h
-                ON  h.U_ITNO   = bx.child_item
-                AND h.U_STATUS = 'Active'
-            INNER JOIN [@C_BOMD] d
-                ON  d.DocEntry = h.DocEntry
-            INNER JOIN OITM itm
-                ON  itm.ItemCode = d.U_ITNO
-            WHERE bx.bom_level < 4
-              AND (
-                    bx.bom_level = 0
-                    OR bx.child_item LIKE 'RF%'
-                    OR bx.child_item LIKE 'FG%'
-                    OR bx.child_item LIKE 'FGE%'
-                    OR bx.child_item LIKE 'RFG%'
-                    OR bx.child_item LIKE 'FGH%'
-                    OR bx.child_item LIKE 'FB%'
-                    OR bx.child_item LIKE 'FBS%'
-                    OR bx.child_item LIKE 'PM%'
-                    OR bx.child_item LIKE 'PX%'
-                    OR bx.child_item LIKE 'RM%'
-                  )
-              -- When the top-level FG itself starts with FB, stop after level 1
-              AND NOT (bx.fg_item LIKE 'FB%' AND bx.bom_level >= 1)
+        -- ================================================================
+        -- RECURSE BRANCH 1: BOM detail children
+        -- ================================================================
+        SELECT
+        CAST(bx.fg_item AS NVARCHAR(100)),
+        CAST(bx.child_item AS NVARCHAR(100)),
+        CAST(d.U_ITNO AS NVARCHAR(100)),
+        CAST(itm.ItemName AS NVARCHAR(200)),
+        CAST(bx.qty_per_fg * d.U_QTY AS DECIMAL(28,10)),
+        CAST(bx.bom_level + 1 AS INT),
+        CAST(d.U_UOM AS NVARCHAR(50)),
+        CAST('BOM' AS NVARCHAR(10)),
+        CAST(bx.explosion_path + ' > ' + d.U_ITNO AS NVARCHAR(4000))
+        FROM BOM_Explosion bx
+        INNER JOIN [@C_BOMH] h
+            ON h.U_ITNO = bx.child_item
+            AND h.U_STATUS = 'Active'
+        INNER JOIN [@C_BOMD] d
+            ON d.DocEntry = h.DocEntry
+        INNER JOIN OITM itm
+            ON itm.ItemCode = d.U_ITNO
+        WHERE bx.bom_level < 4
+        AND (
+            bx.bom_level = 0
+            OR bx.child_item LIKE 'RF%'
+            OR bx.child_item LIKE 'FG%'
+            OR bx.child_item LIKE 'FGE%'
+            OR bx.child_item LIKE 'RFG%'
+            OR bx.child_item LIKE 'FGH%'
+            OR bx.child_item LIKE 'FB%'
+            OR bx.child_item LIKE 'FBS%'
+            OR bx.child_item LIKE 'PM%'
+            OR bx.child_item LIKE 'PX%'
+            OR bx.child_item LIKE 'RM%'
+        )
+        AND NOT (bx.fg_item LIKE 'FB%' AND bx.bom_level >= 1)
+        AND NOT (bx.parent_item LIKE 'RM%')
 
-            UNION ALL
+        UNION ALL
 
-            -- ================================================================
-            -- RECURSE BRANCH 2: Formula ingredients
-            -- ================================================================
-            SELECT
-                CAST(bx.fg_item                                  AS NVARCHAR(100)),
-                CAST(bx.child_item                               AS NVARCHAR(100)),
-                CAST(f1.U_ITEMCODE                               AS NVARCHAR(100)),
-                CAST(itm.ItemName                                AS NVARCHAR(200)),
-                CAST(
-                    bx.qty_per_fg * (f1.U_QTY / NULLIF(fh.U_TLT, 0))
-                                                                 AS DECIMAL(28,10)),
-                CAST(bx.bom_level + 1                           AS INT),
-                CAST(f1.U_UOM                                    AS NVARCHAR(50)),
-                CAST('FORMULA'                                   AS NVARCHAR(10)),
-                CAST(bx.explosion_path + ' > ' + f1.U_ITEMCODE AS NVARCHAR(4000))
-            FROM BOM_Explosion bx
-            INNER JOIN [@C_BOMH] h
-                ON  h.U_ITNO   = bx.child_item
-                AND h.U_STATUS = 'Active'
-            INNER JOIN [@OFES] fh
-                ON  fh.U_FCODE  = h.U_FORMULA
-                AND fh.U_STATUS = 'Active'
-            INNER JOIN [@FES1] f1
-                ON  f1.DocEntry = fh.DocEntry
-            INNER JOIN OITM itm
-                ON  itm.ItemCode = f1.U_ITEMCODE
-            WHERE bx.bom_level < 4
-              AND (
-                    bx.bom_level = 0
-                    OR bx.child_item LIKE 'RF%'
-                    OR bx.child_item LIKE 'FG%'
-                    OR bx.child_item LIKE 'FGE%'
-                    OR bx.child_item LIKE 'RFG%'
-                    OR bx.child_item LIKE 'FGH%'
-                    OR bx.child_item LIKE 'FB%'
-                    OR bx.child_item LIKE 'FBS%'
-                    OR bx.child_item LIKE 'PM%'
-                    OR bx.child_item LIKE 'PX%'
-                    OR bx.child_item LIKE 'RM%'
-                  )
-              -- When the top-level FG itself starts with FB, stop after level 1
-              AND NOT (bx.fg_item LIKE 'FB%' AND bx.bom_level >= 1)
+        -- ================================================================
+        -- RECURSE BRANCH 2: Formula ingredients
+        -- ================================================================
+        SELECT
+        CAST(bx.fg_item AS NVARCHAR(100)),
+        CAST(bx.child_item AS NVARCHAR(100)),
+        CAST(f1.U_ITEMCODE AS NVARCHAR(100)),
+        CAST(itm.ItemName AS NVARCHAR(200)),
+        CAST(
+            bx.qty_per_fg * (f1.U_QTY / NULLIF(fh.U_TLT, 0))
+            AS DECIMAL(28,10)),
+        CAST(bx.bom_level + 1 AS INT),
+        CAST(f1.U_UOM AS NVARCHAR(50)),
+        CAST('FORMULA' AS NVARCHAR(10)),
+        CAST(bx.explosion_path + ' > ' + f1.U_ITEMCODE AS NVARCHAR(4000))
+        FROM BOM_Explosion bx
+        INNER JOIN [@C_BOMH] h
+            ON h.U_ITNO = bx.child_item
+            AND h.U_STATUS = 'Active'
+        INNER JOIN [@OFES] fh
+            ON fh.U_FCODE = h.U_FORMULA
+            AND fh.U_STATUS = 'Active'
+        INNER JOIN [@FES1] f1
+            ON f1.DocEntry = fh.DocEntry
+        INNER JOIN OITM itm
+            ON itm.ItemCode = f1.U_ITEMCODE
+        WHERE bx.bom_level < 4
+        AND (
+            bx.bom_level = 0
+            OR bx.child_item LIKE 'RF%'
+            OR bx.child_item LIKE 'FG%'
+            OR bx.child_item LIKE 'FGE%'
+            OR bx.child_item LIKE 'RFG%'
+            OR bx.child_item LIKE 'FGH%'
+            OR bx.child_item LIKE 'FB%'
+            OR bx.child_item LIKE 'FBS%'
+            OR bx.child_item LIKE 'PM%'
+            OR bx.child_item LIKE 'PX%'
+            OR bx.child_item LIKE 'RM%'
+        )
+        AND NOT (bx.fg_item LIKE 'FB%' AND bx.bom_level >= 1)
+        AND NOT (bx.parent_item LIKE 'RM%')
 
         )
 
         -- ================================================================
-        -- Pipe CTE results into temp table, add conversion factor column
+        -- Pipe CTE results into temp table
         -- ================================================================
         SELECT
-            bx.bom_level                                                       AS [Level],
-            bx.fg_item                                                         AS [Finish Good],
-            (SELECT ItemName FROM OITM WHERE ItemCode = bx.fg_item)            AS [Finish Good Name],
-            bx.parent_item                                                     AS [Parent_Code],
-            bx.child_item                                                      AS [Item Code],
-            CASE bx.source
-                WHEN 'BOM'     THEN 'BOM Item'
-                WHEN 'FORMULA' THEN 'Formula Item'
-                ELSE bx.source
-            END                                                                AS [Item_Type],
-            CAST(bx.qty_per_fg AS DECIMAL(18,6))                              AS [Item Projection],
-            itm.InvntryUom                                                     AS [Inventory_UOM],
-            itb.ItmsGrpNam                                                     AS [Item Group],
-            CONVERT(NUMERIC(19,2), 1.00)                                       AS [Convertion Factor]
+        bx.bom_level AS [Level],
+        bx.fg_item AS [Finish Good],
+        (SELECT ItemName FROM OITM WHERE ItemCode = bx.fg_item) AS [Finish Good Name],
+        bx.parent_item AS [Parent_Code],
+        bx.child_item AS [Item Code],
+        CASE bx.source
+            WHEN 'BOM' THEN 'BOM Item'
+            WHEN 'FORMULA' THEN 'Formula Item'
+            ELSE bx.source
+        END AS [Item_Type],
+        CAST(bx.qty_per_fg AS DECIMAL(18,6)) AS [Item Projection],
+        itm.InvntryUom AS [Inventory_UOM],
+        itb.ItmsGrpNam AS [Item Group],
+        CONVERT(NUMERIC(19,2), 1.00) AS [Convertion Factor]
         INTO #BomResult
         FROM BOM_Explosion bx
         INNER JOIN OITM itm ON itm.ItemCode = bx.child_item
-        LEFT  JOIN OITB itb ON itb.ItmsGrpCod = itm.ItmsGrpCod
+        LEFT JOIN OITB itb ON itb.ItmsGrpCod = itm.ItmsGrpCod
         WHERE bx.bom_level > 0
         OPTION (MAXRECURSION 100);
 
         -- ================================================================
-        -- Conversion factor logic from Vikas query
+        -- Conversion factor logic
         -- ================================================================
 
         -- Step 1: Lookup conversion factor per Parent_Code
@@ -673,8 +436,6 @@ def run_query(json_payload: str, db: Session) -> list[dict]:
         WHERE [Convertion Factor] = 0.00;
 
         -- Step 3: Recalculate Item Projection applying conversion factor
-        --   BOM Items:     UOM='NO'  → qty * factor  |  otherwise → qty (no factor)
-        --   Formula Items: always    → qty * factor
         UPDATE t
         SET [Item Projection] =
             CASE
@@ -690,17 +451,40 @@ def run_query(json_payload: str, db: Session) -> list[dict]:
         FROM #BomResult t;
 
         -- ================================================================
-        -- Final SELECT — 8 columns the frontend expects
+        -- Step 4: UOM Normalization to KG
+        -- ================================================================
+        UPDATE t
+        SET [Item Projection] =
+            CASE [Inventory_UOM]
+                WHEN 'G'  THEN [Item Projection] / 1000.0
+                WHEN 'MG' THEN [Item Projection] / 1000000.0
+                WHEN 'ML' THEN [Item Projection] / 1000.0
+                WHEN 'L'  THEN [Item Projection] * 1.0
+                WHEN 'NO' THEN [Item Projection]
+                ELSE [Item Projection]
+            END,
+        [Inventory_UOM] =
+            CASE [Inventory_UOM]
+                WHEN 'G'  THEN 'KG'
+                WHEN 'MG' THEN 'KG'
+                WHEN 'ML' THEN 'KG'
+                WHEN 'L'  THEN 'KG'
+                ELSE [Inventory_UOM]
+            END
+        FROM #BomResult t;
+
+        -- ================================================================
+        -- Final SELECT
         -- ================================================================
         SELECT
-            [Item Group],
-            [Finish Good],
-            [Parent_Code],
-            [Finish Good Name],
-            [Item Code],
-            [Item_Type],
-            [Item Projection],
-            [Inventory_UOM]
+        [Item Group],
+        [Finish Good],
+        [Parent_Code],
+        [Finish Good Name],
+        [Item Code],
+        [Item_Type],
+        [Item Projection],
+        [Inventory_UOM]
         FROM #BomResult
         ORDER BY [Finish Good], [Level], [Item Code];
 
@@ -713,6 +497,225 @@ def run_query(json_payload: str, db: Session) -> list[dict]:
     cursor.close()
 
     return [dict(zip(columns, row)) for row in rows]
+
+# ---------------------------------------------------------------------------------------
+
+# ----------------------------------------------- vedant query -----------------------------------------------
+
+# def run_query(json_payload: str, db: Session) -> list[dict]:
+#     import json as json_lib
+
+#     # Parse the JSON back to build VALUES rows directly
+#     items = json_lib.loads(json_payload)
+
+#     # Build: ('FG001', 100), ('FG002', 200), ...
+#     values_rows = ",\n".join(
+#         f"(N'{row['FG_Code'].replace(chr(39), chr(39)*2)}', {row['FG_Qty']})"
+#         for row in items
+#     )
+
+#     raw_conn = db.connection().connection
+#     cursor = raw_conn.cursor()
+
+#     sql = f"""
+#         SET NOCOUNT ON;
+
+#         IF OBJECT_ID('tempdb..#BomResult') IS NOT NULL DROP TABLE #BomResult;
+
+#         DECLARE @FGQty TABLE
+#         (
+#             FG_Code NVARCHAR(50),
+#             FG_Qty  NUMERIC(19,4)
+#         );
+
+#         INSERT INTO @FGQty (FG_Code, FG_Qty)
+#         VALUES
+#         {values_rows};
+
+#         ;WITH BOM_Explosion AS (
+
+#             -- ================================================================
+#             -- ANCHOR LEVEL 0: The FG itself, seeded with requested qty.
+#             -- We carry is_fb_root = 1 if the root FG starts with 'FB',
+#             -- so every recursive row knows the root type without re-checking fg_item.
+#             -- ================================================================
+#             SELECT
+#                 CAST(h.U_ITNO     AS NVARCHAR(100))  AS fg_item,
+#                 CAST(h.U_ITNO     AS NVARCHAR(100))  AS parent_item,
+#                 CAST(h.U_ITNO     AS NVARCHAR(100))  AS child_item,
+#                 CAST(itm.ItemName AS NVARCHAR(200))  AS child_name,
+#                 CAST(q.FG_Qty     AS DECIMAL(28,10)) AS qty_per_fg,
+#                 CAST(0            AS INT)             AS bom_level,
+#                 CAST(h.U_UOM      AS NVARCHAR(50))    AS uom,
+#                 CAST('BOM'        AS NVARCHAR(10))    AS source,
+#                 CAST(h.U_ITNO     AS NVARCHAR(4000))  AS explosion_path,
+#                 -- Carry a flag: 1 if the root FG is an FB item, 0 otherwise.
+#                 -- This propagates unchanged through every recursive step.
+#                 CAST(CASE WHEN h.U_ITNO LIKE 'FB%' THEN 1 ELSE 0 END AS BIT) AS is_fb_root
+#             FROM [@C_BOMH] h
+#             INNER JOIN OITM itm ON itm.ItemCode = h.U_ITNO
+#             INNER JOIN @FGQty q  ON q.FG_Code   = h.U_ITNO
+#             WHERE h.U_STATUS = 'Active'
+
+#             UNION ALL
+
+#             -- ================================================================
+#             -- RECURSE BRANCH 1: BOM detail children
+#             -- Depth rule: if the root FG is FB, only expand level 0 → level 1.
+#             --             For all other roots, expand up to level 4.
+#             -- "Only expand from bx" means: bx.bom_level must be 0 for FB roots.
+#             -- ================================================================
+#             SELECT
+#                 CAST(bx.fg_item                              AS NVARCHAR(100)),
+#                 CAST(bx.child_item                           AS NVARCHAR(100)),
+#                 CAST(d.U_ITNO                                AS NVARCHAR(100)),
+#                 CAST(itm.ItemName                            AS NVARCHAR(200)),
+#                 CAST(bx.qty_per_fg * d.U_QTY                AS DECIMAL(28,10)),
+#                 CAST(bx.bom_level + 1                        AS INT),
+#                 CAST(d.U_UOM                                 AS NVARCHAR(50)),
+#                 CAST('BOM'                                   AS NVARCHAR(10)),
+#                 CAST(bx.explosion_path + ' > ' + d.U_ITNO   AS NVARCHAR(4000)),
+#                 bx.is_fb_root
+#             FROM BOM_Explosion bx
+#             INNER JOIN [@C_BOMH] h
+#                 ON  h.U_ITNO   = bx.child_item
+#                 AND h.U_STATUS = 'Active'
+#             INNER JOIN [@C_BOMD] d
+#                 ON  d.DocEntry = h.DocEntry
+#             INNER JOIN OITM itm
+#                 ON  itm.ItemCode = d.U_ITNO
+#             WHERE
+#                 -- For FB roots: only expand from level 0 (producing level 1 only)
+#                 -- For all other roots: expand up to level 4
+#                 (bx.is_fb_root = 1 AND bx.bom_level = 0)
+#                 OR
+#                 (bx.is_fb_root = 0 AND bx.bom_level < 4)
+
+#             UNION ALL
+
+#             -- ================================================================
+#             -- RECURSE BRANCH 2: Formula ingredients
+#             -- Same depth rule applied identically.
+#             -- ================================================================
+#             SELECT
+#                 CAST(bx.fg_item                                  AS NVARCHAR(100)),
+#                 CAST(bx.child_item                               AS NVARCHAR(100)),
+#                 CAST(f1.U_ITEMCODE                               AS NVARCHAR(100)),
+#                 CAST(itm.ItemName                                AS NVARCHAR(200)),
+#                 CAST(bx.qty_per_fg * (f1.U_QTY / NULLIF(fh.U_TLT, 0))
+#                                                                  AS DECIMAL(28,10)),
+#                 CAST(bx.bom_level + 1                            AS INT),
+#                 CAST(f1.U_UOM                                    AS NVARCHAR(50)),
+#                 CAST('FORMULA'                                   AS NVARCHAR(10)),
+#                 CAST(bx.explosion_path + ' > ' + f1.U_ITEMCODE  AS NVARCHAR(4000)),
+#                 bx.is_fb_root
+#             FROM BOM_Explosion bx
+#             INNER JOIN [@C_BOMH] h
+#                 ON  h.U_ITNO   = bx.child_item
+#                 AND h.U_STATUS = 'Active'
+#             INNER JOIN [@OFES] fh
+#                 ON  fh.U_FCODE  = h.U_FORMULA
+#                 AND fh.U_STATUS = 'Active'
+#             INNER JOIN [@FES1] f1
+#                 ON  f1.DocEntry = fh.DocEntry
+#             INNER JOIN OITM itm
+#                 ON  itm.ItemCode = f1.U_ITEMCODE
+#             WHERE
+#                 -- Same rule as Branch 1
+#                 (bx.is_fb_root = 1 AND bx.bom_level = 0)
+#                 OR
+#                 (bx.is_fb_root = 0 AND bx.bom_level < 4)
+
+#         )
+
+#         -- ================================================================
+#         -- Pipe CTE results into temp table, add conversion factor column
+#         -- ================================================================
+#         SELECT
+#             bx.bom_level                                                       AS [Level],
+#             bx.fg_item                                                         AS [Finish Good],
+#             (SELECT ItemName FROM OITM WHERE ItemCode = bx.fg_item)            AS [Finish Good Name],
+#             bx.parent_item                                                     AS [Parent_Code],
+#             bx.child_item                                                      AS [Item Code],
+#             CASE bx.source
+#                 WHEN 'BOM'     THEN 'BOM Item'
+#                 WHEN 'FORMULA' THEN 'Formula Item'
+#                 ELSE bx.source
+#             END                                                                AS [Item_Type],
+#             CAST(bx.qty_per_fg AS DECIMAL(18,6))                              AS [Item Projection],
+#             itm.InvntryUom                                                     AS [Inventory_UOM],
+#             itb.ItmsGrpNam                                                     AS [Item Group],
+#             CONVERT(NUMERIC(19,2), 1.00)                                       AS [Convertion Factor]
+#         INTO #BomResult
+#         FROM BOM_Explosion bx
+#         INNER JOIN OITM itm ON itm.ItemCode = bx.child_item
+#         LEFT  JOIN OITB itb ON itb.ItmsGrpCod = itm.ItmsGrpCod
+#         WHERE bx.bom_level > 0
+#         OPTION (MAXRECURSION 100);
+
+#         -- ================================================================
+#         -- Conversion factor logic
+#         -- ================================================================
+
+#         -- Step 1: Lookup conversion factor per Parent_Code
+#         UPDATE t
+#         SET [Convertion Factor] = ISNULL(cd1.U_CONFACTR, 1)
+#         FROM #BomResult t,
+#         (
+#             SELECT DISTINCT cd.U_CONFACTR, ch.U_ITNO
+#             FROM [@C_ITMSTR] ch, [@C_ITMUOM] cd
+#             WHERE cd.DocEntry = ch.DocEntry
+#               AND cd.U_TOUOM <> ''
+#         ) cd1
+#         WHERE t.[Parent_Code] = cd1.U_ITNO;
+
+#         -- Step 2: Default conversion factor to 1 where still 0
+#         UPDATE t
+#         SET [Convertion Factor] = 1
+#         FROM #BomResult t
+#         WHERE [Convertion Factor] = 0.00;
+
+#         -- Step 3: Recalculate Item Projection applying conversion factor
+#         --   BOM Items:     UOM='NO'  → qty * factor  |  otherwise → qty (no factor)
+#         --   Formula Items: always    → qty * factor
+#         UPDATE t
+#         SET [Item Projection] =
+#             CASE
+#                 WHEN [Item_Type] = 'BOM Item'
+#                 THEN (
+#                     CASE WHEN [Inventory_UOM] = 'NO'
+#                          THEN [Item Projection] * [Convertion Factor]
+#                          ELSE [Item Projection]
+#                     END
+#                 )
+#                 ELSE [Item Projection] * [Convertion Factor]
+#             END
+#         FROM #BomResult t;
+
+#         -- ================================================================
+#         -- Final SELECT
+#         -- ================================================================
+#         SELECT
+#             [Item Group],
+#             [Finish Good],
+#             [Parent_Code],
+#             [Finish Good Name],
+#             [Item Code],
+#             [Item_Type],
+#             [Item Projection],
+#             [Inventory_UOM]
+#         FROM #BomResult
+#         ORDER BY [Finish Good], [Level], [Item Code];
+
+#         IF OBJECT_ID('tempdb..#BomResult') IS NOT NULL DROP TABLE #BomResult;
+#     """
+
+#     cursor.execute(sql)
+#     columns = [col[0] for col in cursor.description]
+#     rows = cursor.fetchall()
+#     cursor.close()
+
+#     return [dict(zip(columns, row)) for row in rows]
 
 # ----------------------------------------------------------------------------------------------
 
