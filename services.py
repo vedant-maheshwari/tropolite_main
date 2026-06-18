@@ -491,10 +491,12 @@ def run_query(json_payload: str, db: Session):
         IF OBJECT_ID('tempdb..#BomResult') IS NOT NULL DROP TABLE #BomResult;
     """
 
-    cursor.execute(sql)
-    columns = [col[0] for col in cursor.description]
-    rows = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor.execute(sql)
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()  # Always release the cursor to free SAP locks
 
     return [dict(zip(columns, row)) for row in rows]
 
@@ -916,3 +918,166 @@ def get_closing_stock(db: Session):
     # Return the clean dictionary
     return stock_dict
 
+
+def run_rf_explosion(rf_items: list[dict], db: Session) -> list[dict]:
+    """
+    Given a list of {'code': <RF_code>, 'qty': <float>} dicts that came in
+    from the PX → MD conversion, explodes each RF code through the BOM and
+    returns only the leaf raw-material rows (RM, PK, LB, R&D, PX prefixes).
+
+    Parameters
+    ----------
+    rf_items : list[dict]
+        e.g. [{'code': 'RF001', 'qty': 123.45}, ...]
+    db : SQLAlchemy Session  (same production DB used by run_query)
+
+    Returns
+    -------
+    list[dict] with keys: 'RF_Root', 'Parent_Code', 'Item Code',
+                          'Item Projection', 'Inventory_UOM'
+    """
+    if not rf_items:
+        return []
+
+    values_rows = ",\n".join(
+        f"(N'{item['code'].replace(chr(39), chr(39)*2)}', {item['qty']})"
+        for item in rf_items
+    )
+
+    raw_conn = db.connection().connection
+    cursor = raw_conn.cursor()
+
+    sql = f"""
+        SET NOCOUNT ON;
+
+        IF OBJECT_ID('tempdb..#RfResult') IS NOT NULL DROP TABLE #RfResult;
+
+        DECLARE @RFQty TABLE
+        (
+            FG_Code NVARCHAR(50),
+            FG_Qty  NUMERIC(19,4)
+        );
+
+        INSERT INTO @RFQty (FG_Code, FG_Qty)
+        VALUES
+        {values_rows};
+
+        ;WITH BOM_Explosion AS (
+
+            -- Anchor: the RF item itself
+            SELECT
+                CAST(h.U_ITNO AS NVARCHAR(100)) AS fg_item,
+                CAST(h.U_ITNO AS NVARCHAR(100)) AS parent_item,
+                CAST(h.U_ITNO AS NVARCHAR(100)) AS child_item,
+                CAST(q.FG_Qty AS DECIMAL(28,10)) AS qty_per_fg,
+                CAST(0 AS INT) AS bom_level,
+                CAST(h.U_UOM AS NVARCHAR(50)) AS uom,
+                CAST('BOM' AS NVARCHAR(10)) AS source,
+                CAST(h.U_ITNO AS NVARCHAR(4000)) AS explosion_path
+            FROM [@C_BOMH] h
+            INNER JOIN @RFQty q ON q.FG_Code = h.U_ITNO
+            WHERE h.U_STATUS = 'Active'
+
+            UNION ALL
+
+            -- BOM children
+            SELECT
+                CAST(bx.fg_item AS NVARCHAR(100)),
+                CAST(bx.child_item AS NVARCHAR(100)),
+                CAST(d.U_ITNO AS NVARCHAR(100)),
+                CAST(bx.qty_per_fg * d.U_QTY AS DECIMAL(28,10)),
+                CAST(bx.bom_level + 1 AS INT),
+                CAST(d.U_UOM AS NVARCHAR(50)),
+                CAST('BOM' AS NVARCHAR(10)),
+                CAST(bx.explosion_path + ' > ' + d.U_ITNO AS NVARCHAR(4000))
+            FROM BOM_Explosion bx
+            INNER JOIN [@C_BOMH] h
+                ON h.U_ITNO = bx.child_item AND h.U_STATUS = 'Active'
+            INNER JOIN [@C_BOMD] d
+                ON d.DocEntry = h.DocEntry
+            INNER JOIN OITM itm ON itm.ItemCode = d.U_ITNO
+            WHERE bx.bom_level < 4
+            AND NOT (bx.parent_item LIKE 'RM%')
+
+            UNION ALL
+
+            -- Formula ingredients
+            SELECT
+                CAST(bx.fg_item AS NVARCHAR(100)),
+                CAST(bx.child_item AS NVARCHAR(100)),
+                CAST(f1.U_ITEMCODE AS NVARCHAR(100)),
+                CAST(bx.qty_per_fg * (f1.U_QTY / NULLIF(fh.U_TLT, 0)) AS DECIMAL(28,10)),
+                CAST(bx.bom_level + 1 AS INT),
+                CAST(f1.U_UOM AS NVARCHAR(50)),
+                CAST('FORMULA' AS NVARCHAR(10)),
+                CAST(bx.explosion_path + ' > ' + f1.U_ITEMCODE AS NVARCHAR(4000))
+            FROM BOM_Explosion bx
+            INNER JOIN [@C_BOMH] h
+                ON h.U_ITNO = bx.child_item AND h.U_STATUS = 'Active'
+            INNER JOIN [@OFES] fh
+                ON fh.U_FCODE = h.U_FORMULA AND fh.U_STATUS = 'Active'
+            INNER JOIN [@FES1] f1
+                ON f1.DocEntry = fh.DocEntry
+            INNER JOIN OITM itm ON itm.ItemCode = f1.U_ITEMCODE
+            WHERE bx.bom_level < 4
+            AND NOT (bx.parent_item LIKE 'RM%')
+        )
+
+        SELECT
+            bx.fg_item       AS [RF_Root],
+            bx.parent_item   AS [Parent_Code],
+            bx.child_item    AS [Item Code],
+            CAST(bx.qty_per_fg AS DECIMAL(18,6)) AS [Item Projection],
+            itm.InvntryUom   AS [Inventory_UOM]
+        INTO #RfResult
+        FROM BOM_Explosion bx
+        INNER JOIN OITM itm ON itm.ItemCode = bx.child_item
+        WHERE bx.bom_level > 0
+        OPTION (MAXRECURSION 100);
+
+        -- UOM Normalization to KG
+        UPDATE t
+        SET [Item Projection] =
+            CASE [Inventory_UOM]
+                WHEN 'G'  THEN [Item Projection] / 1000.0
+                WHEN 'MG' THEN [Item Projection] / 1000000.0
+                WHEN 'ML' THEN [Item Projection] / 1000.0
+                WHEN 'L'  THEN [Item Projection] * 1.0
+                ELSE [Item Projection]
+            END,
+        [Inventory_UOM] =
+            CASE [Inventory_UOM]
+                WHEN 'G'  THEN 'KG'
+                WHEN 'MG' THEN 'KG'
+                WHEN 'ML' THEN 'KG'
+                WHEN 'L'  THEN 'KG'
+                ELSE [Inventory_UOM]
+            END
+        FROM #RfResult t;
+
+        -- Return only leaf-level procurement items
+        SELECT [RF_Root], [Parent_Code], [Item Code], [Item Projection], [Inventory_UOM]
+        FROM #RfResult
+        WHERE
+            [Item Code] LIKE 'RM%'
+            OR [Item Code] LIKE 'PK%'
+            OR [Item Code] LIKE 'LB%'
+            OR [Item Code] LIKE 'R&d%'
+            OR [Item Code] LIKE 'R&D%'
+            OR [Item Code] LIKE 'PX%'
+        ORDER BY [RF_Root], [Item Code];
+
+        IF OBJECT_ID('tempdb..#RfResult') IS NOT NULL DROP TABLE #RfResult;
+    """
+
+    cursor.execute(sql)
+    columns = [col[0] for col in cursor.description]
+    rows = cursor.fetchall()
+    cursor.close()
+
+    return [dict(zip(columns, row)) for row in rows]
+
+
+def cleanup_firebase():
+    ref = db.reference('vault_system')
+    ref.delete()

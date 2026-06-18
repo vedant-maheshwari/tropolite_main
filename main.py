@@ -212,6 +212,59 @@ async def upload_excel(
         raise HTTPException(400, detail=f'Error occurred: {e}')
 
 
+@app.post('/get_bom_only')
+async def get_bom_only(
+    file: UploadFile = File(...),
+    current_user=Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+    db_admin: Session = Depends(get_db_admin)
+):
+    """Runs only the BOM query (no PX conversion). Returns the per-FG BOM table directly."""
+    if not file.filename.endswith(('.xlsx', '.xls', '.csv')):
+        raise HTTPException(400, detail='Invalid file type.')
+
+    save_dir = '/tmp/uploaded_files'
+    os.makedirs(save_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1]
+    file_location = f'{save_dir}/{datetime.now()}{ext}'
+
+    with open(file_location, "wb+") as f:
+        shutil.copyfileobj(file.file, f)
+
+    check = services.check_file_structure_and_conditions(file_location)
+    if check['status'] != 'True':
+        raise HTTPException(status_code=400, detail=check['details'])
+
+    try:
+        json_payload = services.process_file(file_location)
+        results = services.run_query(json_payload, db)
+        return results
+    except Exception as e:
+        raise HTTPException(400, detail=f'Error occurred: {e}')
+
+
+class RFItem(BaseModel):
+    code: str
+    qty: float
+
+@app.post('/explode_rf')
+async def explode_rf(
+    rf_items: List[RFItem],
+    current_user=Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Accepts a list of RF codes with quantities (from PX conversion results).
+    Runs BOM explosion on each and returns the broken-down raw materials.
+    """
+    try:
+        items = [{'code': item.code, 'qty': item.qty} for item in rf_items]
+        results = services.run_rf_explosion(items, db)
+        return results
+    except Exception as e:
+        raise HTTPException(400, detail=f'Error occurred during RF explosion: {e}')
+
+
 @app.get('/admin', response_class=HTMLResponse)
 async def serve_home(request : Request):
     return templates.TemplateResponse(request, 'admin.html')

@@ -1097,13 +1097,22 @@
                     <span class="toggle-track"></span>
                     <span>Dev Mode</span>
                 </label>
-                <button id="processBtn" class="btn btn-primary" disabled style="width:auto;min-width:140px;">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    Run Query
-                </button>
+                <div style="display:flex;gap:0.5rem;">
+                    <button id="bomOnlyBtn" class="btn btn-ghost" disabled style="width:auto;min-width:140px;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        BOM Only
+                    </button>
+                    <button id="processBtn" class="btn btn-primary" disabled style="width:auto;min-width:140px;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Run Query
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1339,6 +1348,13 @@
             fileInput.value = '';
             dropzoneCont.innerHTML = defaultDropzoneHTML;
             processBtn.disabled = true;
+            const _bomOnlyBtn = document.getElementById('bomOnlyBtn');
+            if (_bomOnlyBtn) { _bomOnlyBtn.disabled = true; _bomOnlyBtn.innerHTML = `
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        BOM Only`; }
             processBtn.innerHTML = `
         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1368,6 +1384,7 @@
         <p class="dropzone-hint" style="margin-top:0.5rem">${(file.size / 1024).toFixed(1)} KB</p>
     `;
             processBtn.disabled = false;
+            document.getElementById('bomOnlyBtn').disabled = false;
         });
 
         // ── LOGIN ─────────────────────────────────────────────────
@@ -1408,6 +1425,7 @@
             fd.append('file', currentFile);
 
             processBtn.disabled = true;
+            document.getElementById('bomOnlyBtn').disabled = true;
             processBtn.textContent = 'Running…';
             uploadSpinner.classList.add('visible');
             spinnerText.textContent = 'Uploading file…';
@@ -1442,6 +1460,62 @@
                 } else {
                     buildFinalResults(bomData, []);
                 }
+                resetUpload();
+
+            } catch (err) {
+                showToast(err.message, 'error');
+                if (err.message.includes('Session expired')) showView(loginView);
+                resetUpload();
+            }
+        });
+
+        // ── BOM ONLY ──────────────────────────────────────────────
+        const bomOnlyBtn = document.getElementById('bomOnlyBtn');
+        bomOnlyBtn.addEventListener('click', async () => {
+            if (!currentFile) return;
+            const token = localStorage.getItem('access_token');
+            if (!token) { showToast('Not logged in.', 'error'); return; }
+
+            const fd = new FormData();
+            fd.append('file', currentFile);
+
+            bomOnlyBtn.disabled = true;
+            processBtn.disabled = true;
+            bomOnlyBtn.textContent = 'Loading…';
+            uploadSpinner.classList.add('visible');
+            spinnerText.textContent = 'Running BOM query…';
+            setStep(2);
+
+            try {
+                const res = await fetch(`${API_BASE}/get_bom_only`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: fd
+                });
+
+                if (res.status === 401) {
+                    localStorage.removeItem('access_token');
+                    throw new Error('Session expired. Please sign in again.');
+                }
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || `Server error ${res.status}`);
+                }
+
+                bomData = await res.json();
+                if (!bomData || bomData.length === 0) throw new Error('BOM query returned no results.');
+
+                // Show only the Per-FG BOM table — skip the waiting/final flow
+                devMode = true;
+                document.getElementById('devModeToggle').checked = true;
+                document.getElementById('bomTabBtn').style.display = '';
+                renderBomTables(bomData);
+                setStep(4);
+                showView(resultsView);
+                // Switch directly to the BOM tab
+                const bomTabBtn = document.getElementById('bomTabBtn');
+                switchTab(bomTabBtn, 'bomTable');
+                showToast(`BOM table loaded — ${bomData.length} rows.`, 'success');
                 resetUpload();
 
             } catch (err) {
@@ -1640,10 +1714,6 @@
             setStep(4);
 
             // ── DATA-DRIVEN LEAF DETECTION ─────────────────────────
-            // Build a Set of every item that appears as a Parent_Item.
-            // Any Child_Item NOT in this set is a true leaf (procurement item).
-            // This is prefix-agnostic: PM, LB, RM, PK, R&D, and any future
-            // codes are all handled correctly without hardcoded lists.
             const parentSet = new Set(
                 bom.map(r => r['Parent_Code']).filter(Boolean)
             );
@@ -1667,11 +1737,51 @@
                 agg[code].qty += qty;
             }
 
-            // Merge converted PX → MD results from Firebase
+            // Merge converted PX → MD results from Firebase.
+            // If any of those converted codes start with 'RF', call /explode_rf to
+            // break them and merge the resulting raw materials instead.
+            const rfItems = [];
             for (const entry of pxConverted) {
                 for (const [code, qty] of Object.entries(entry)) {
-                    if (!agg[code]) agg[code] = { code, name: '', qty: 0, uom: 'kg' };
-                    agg[code].qty += parseFloat(qty) || 0;
+                    if (code.startsWith('RF')) {
+                        rfItems.push({ code, qty: parseFloat(qty) || 0 });
+                    } else {
+                        if (!agg[code]) agg[code] = { code, name: '', qty: 0, uom: 'kg' };
+                        agg[code].qty += parseFloat(qty) || 0;
+                    }
+                }
+            }
+
+            // If RF codes exist, explode them via the backend
+            if (rfItems.length > 0) {
+                showToast(`Exploding ${rfItems.length} RF code(s)…`, '');
+                try {
+                    const token = localStorage.getItem('access_token');
+                    const rfRes = await fetch(`${API_BASE}/explode_rf`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(rfItems)
+                    });
+                    if (rfRes.ok) {
+                        const rfRows = await rfRes.json();
+                        for (const row of rfRows) {
+                            const code = row['Item Code'] || '';
+                            if (!code) continue;
+                            const qty = parseFloat(row['Item Projection']) || 0;
+                            const uom = row['Inventory_UOM'] || 'KG';
+                            if (!agg[code]) agg[code] = { code, name: '', qty: 0, uom };
+                            agg[code].qty += qty;
+                        }
+                    } else {
+                        console.warn('RF explosion failed:', await rfRes.text());
+                        showToast('Warning: RF code explosion failed; RF codes skipped.', 'error');
+                    }
+                } catch (e) {
+                    console.warn('RF explosion error:', e);
+                    showToast('Warning: RF code explosion error; RF codes skipped.', 'error');
                 }
             }
 

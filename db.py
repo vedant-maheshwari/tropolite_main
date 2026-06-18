@@ -51,17 +51,21 @@ def get_db_admin():
 
 # engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
-engine = create_engine(DATABASE_URL)
+# SAP MSSQL engine — strictly limited pool to avoid overloading SAP
+# pool_size: max persistent connections kept alive
+# max_overflow: extra connections allowed beyond pool_size (then blocked)
+# pool_timeout: seconds to wait for a free connection before raising an error
+# pool_recycle: recycle connections after 30 min to avoid stale/broken sockets
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=3,
+    max_overflow=2,
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_pre_ping=True,   # validates connection health before use
+)
 SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 Base = declarative_base()
-
-try:
-    with engine.connect() as conn:
-        print("Connected")
-        print("Database:", engine.url.database)
-
-except Exception as e:
-    print(e)
 
 def get_db():
     db = SessionLocal()
@@ -71,19 +75,16 @@ def get_db():
         db.close()
 
 
-engine_md = create_engine(DATABASE_URL_MD)
-SessionLocalMD = sessionmaker(autoflush=False, autocommit=False,bind=engine_md)
-
-try:
-    with engine_md.connect() as conn_md:
-        print('Connected to MD')
-        db_name = conn_md.execute(
-            text('SELECT DB_NAME()')
-        ).scalar()
-
-        print("MD Database :", db_name)
-except Exception as e:
-    print(e)
+# SAP MD MSSQL engine — same conservative pool settings
+engine_md = create_engine(
+    DATABASE_URL_MD,
+    pool_size=2,
+    max_overflow=1,
+    pool_timeout=30,
+    pool_recycle=1800,
+    pool_pre_ping=True,
+)
+SessionLocalMD = sessionmaker(autoflush=False, autocommit=False, bind=engine_md)
 
 def get_db_md():
     db_md = SessionLocalMD()
