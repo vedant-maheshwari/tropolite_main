@@ -964,6 +964,21 @@
             background: rgba(147, 47, 49, 0.08);
         }
 
+        td.price-col {
+            text-align: right;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        td.price-total {
+            text-align: right;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
         .stock-loading-badge {
             display: inline-flex;
             align-items: center;
@@ -1265,7 +1280,8 @@
         let pollingInterval = null;
         let bomData = [];
         let finalData = [];
-        let closingStock = {};   // { ItemCode: availableQty }
+        let closingStock = {};   // { ItemCode: { qty, last_pur_prc } }
+        let newPrices = {};      // { ItemCode: price }  — from monthly admin upload
 
         // ── TOAST ─────────────────────────────────────────────────
         function showToast(msg, type = '') {
@@ -1644,6 +1660,24 @@
             }
         }
 
+        // ── FETCH NEW PRICES (monthly admin upload) ────────────────
+        async function fetchNewPrices() {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE}/new_prices`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    newPrices = await res.json();
+                } else {
+                    newPrices = {};
+                }
+            } catch (e) {
+                newPrices = {};
+            }
+        }
+
         // ── BADGE HELPER (generic, prefix-based) ─────────────────
         function codeToClass(code) {
             if (code.startsWith('RM')) return 'badge-rm';
@@ -1662,6 +1696,9 @@
                     <th style="text-align:right">Required Qty</th>
                     <th style="text-align:right">Available Stock</th>
                     <th style="text-align:right">Net Required</th>
+                    <th style="text-align:right">Last Pur Price</th>
+                    <th style="text-align:right">New Price</th>
+                    <th style="text-align:right">Total Price</th>
                     <th>UOM</th>`;
             } else {
                 head.innerHTML = `
@@ -1681,21 +1718,39 @@
                 const typeLabel = row.code.slice(0, 2).toUpperCase();
 
                 if (stockViewMode) {
-                    const avail = parseFloat(closingStock[row.code] ?? 0);
+                    const stockEntry = closingStock[row.code] || {};
+                    const avail = parseFloat(stockEntry.qty ?? 0);
+                    const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
                     const net = row.qty - avail;
                     const isDeficit = net > 0;
-                    const netVal = isDeficit ? net : 0;
+                    const netQty = isDeficit ? net : 0;
+                    const availUsed = isDeficit ? avail : row.qty;  // how much stock actually covers the requirement
+
+                    // Pricing logic:
+                    //   lastPurPrice covers the qty that IS in stock (up to required)
+                    //   newPrice covers the deficit qty (0 if stock is sufficient)
+                    const newPrc = parseFloat(newPrices[row.code] ?? 0);
+                    const lastPurTotal = availUsed * lastPurPrc;
+                    const newPriceTotal = isDeficit ? (netQty * newPrc) : 0;
+                    const totalPrice = lastPurTotal + newPriceTotal;
+
                     const availFmt = avail.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-                    const netFmt = netVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+                    const netFmt = netQty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
                     const netDisplay = isDeficit
                         ? `<span style="font-size:0.7rem;margin-right:2px">▲</span>${netFmt}`
                         : `<span style="font-size:0.7rem;margin-right:2px">✓</span>${netFmt}`;
+
+                    const fmtPrice = v => v === 0 ? '—' : v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
                     return `<tr class="${isDeficit ? 'row-deficit' : ''}">` +
                         `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
                         `<td><span class="code-badge ${cls}">${typeLabel}</span></td>` +
                         `<td class="num">${reqFmt}</td>` +
                         `<td class="stock-avail">${availFmt}</td>` +
                         `<td class="stock-net ${isDeficit ? 'deficit' : 'surplus'}">${netDisplay}</td>` +
+                        `<td class="price-col">${fmtPrice(lastPurPrc)}</td>` +
+                        `<td class="price-col">${isDeficit && newPrc > 0 ? fmtPrice(newPrc) : '—'}</td>` +
+                        `<td class="price-total">${totalPrice > 0 ? fmtPrice(totalPrice) : '—'}</td>` +
                         `<td>${uomTxt}</td>` +
                         `</tr>`;
                 } else {
@@ -1791,8 +1846,8 @@
             showToast(`${finalData.length} items ready.`, 'success');
             renderFinalTable();
 
-            // Fetch closing stock after showing results (non-blocking)
-            await fetchClosingStock();
+            // Fetch closing stock + new prices after showing results (non-blocking)
+            await Promise.all([fetchClosingStock(), fetchNewPrices()]);
             if (stockViewMode) renderFinalTable();
 
             // Dev mode BOM tables
@@ -1858,18 +1913,29 @@
             if (!finalData.length) return;
             let cols, rows;
             if (stockViewMode) {
-                cols = ['Code', 'Type', 'Required Qty', 'Available Stock', 'Net Required', 'UOM'];
+                cols = ['Code', 'Type', 'Required Qty', 'Available Stock', 'Net Required', 'Last Pur Price', 'New Price', 'Total Price', 'UOM'];
                 rows = finalData.map(r => {
-                    const avail = parseFloat(closingStock[r.code] ?? 0);
+                    const stockEntry = closingStock[r.code] || {};
+                    const avail = parseFloat(stockEntry.qty ?? 0);
+                    const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
                     const net = r.qty - avail;
-                    const netVal = net > 0 ? net : 0;
+                    const isDeficit = net > 0;
+                    const netQty = isDeficit ? net : 0;
+                    const availUsed = isDeficit ? avail : r.qty;
+                    const newPrc = parseFloat(newPrices[r.code] ?? 0);
+                    const lastPurTotal = availUsed * lastPurPrc;
+                    const newPriceTotal = isDeficit ? (netQty * newPrc) : 0;
+                    const totalPrice = lastPurTotal + newPriceTotal;
                     const safeUom = (r.uom || '').replace(/"/g, '""');
                     return [
                         `"${r.code}"`,
                         `"${r.code.slice(0, 2).toUpperCase()}"`,
                         r.qty.toFixed(4),
                         avail.toFixed(4),
-                        netVal.toFixed(4),
+                        netQty.toFixed(4),
+                        lastPurPrc.toFixed(2),
+                        isDeficit ? newPrc.toFixed(2) : '0.00',
+                        totalPrice.toFixed(2),
                         `"${safeUom}"`
                     ].join(',');
                 });
@@ -1923,7 +1989,7 @@
 
         function goToUpload() {
             clearInterval(pollingInterval);
-            bomData = []; finalData = []; closingStock = {};
+            bomData = []; finalData = []; closingStock = {}; newPrices = {};
             document.getElementById('finalTableBody').innerHTML = '';
             document.getElementById('bomTablesContainer').innerHTML = '';
             document.getElementById('devModeToggle').checked = false;

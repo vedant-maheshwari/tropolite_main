@@ -309,112 +309,6 @@ def check_db_conn():
     except Exception as e:
         return {'error encountered' : f'{e}'}
 
-# @app.get('/get_item_by_id')
-# def test(id, db : Session = Depends(get_db)):
-#     return services.select_by_id(id, db)
-
-# @app.post('/get_multiple_item', response_model=schemas.get_multiple_item)
-# def get_multiple_item(item_ids : schemas.multi_id_input, db : Session = Depends(get_db)):
-#     return services.get_multiple_item(item_ids, db)
-
-# @app.post('/get_total_materials')
-# def total_materials(payload : schemas.MultiIdInputWithOpBalanceForecastQty, db : Session = Depends(get_db)):
-#     return services.get_total_materials_with_op_balance_forecast_qty(payload, db)
-
-# @app.get("/bom")
-# def get_bom(db: Session = Depends(get_db)):
-#     result = db.execute(
-#         text("EXEC CBS_BOM '622'")
-#     )
-#     return_list = []
-#     for i, row in enumerate(result):
-#         return_list.append(dict(row._mapping))
-#         # print(dict(row._mapping))
-#         if i == 4:
-#             break
-#     return return_list
-#     # count = 0
-#     # for _ in result:
-#     #     count += 1
-#     # print(count)
-
-
-# @app.post('/insert_recipes', status_code=status.HTTP_201_CREATED)
-# def insert_recipes(db: Session = Depends(get_db)):
-#     query = text("""
-#         INSERT INTO formula (product_id, material_id, material_qty, material_req, material_metric, material_cost)
-#         VALUES (:product_id, :material_id, :material_qty, :material_req, :material_metric, :material_cost);
-#     """)
-    
-#     # 10 Products mapped strictly using codes with different numbers of raw materials
-#     recipes_dataset = [
-#         # --- PRODUCT 1 (5 Materials) ---
-#         {"product_id": "FG01", "material_id": "RM01", "material_qty": 100, "material_req": 40, "material_metric": "kg", "material_cost": 2},
-#         {"product_id": "FG01", "material_id": "RM02", "material_qty": 100, "material_req": 25, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG01", "material_id": "RM03", "material_qty": 100, "material_req": 15, "material_metric": "kg", "material_cost": 8},
-#         {"product_id": "FG01", "material_id": "RM04", "material_qty": 100, "material_req": 18, "material_metric": "kg", "material_cost": 4},
-#         {"product_id": "FG01", "material_id": "RM05", "material_qty": 100, "material_req": 2, "material_metric": "kg", "material_cost": 45},
-
-#         # --- PRODUCT 2 (5 Materials) ---
-#         {"product_id": "FG02", "material_id": "RM01", "material_qty": 100, "material_req": 35, "material_metric": "kg", "material_cost": 2},
-#         {"product_id": "FG02", "material_id": "RM02", "material_qty": 100, "material_req": 30, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG02", "material_id": "RM06", "material_qty": 100, "material_req": 15, "material_metric": "kg", "material_cost": 12},
-#         {"product_id": "FG02", "material_id": "RM03", "material_qty": 100, "material_req": 12, "material_metric": "kg", "material_cost": 8},
-#         {"product_id": "FG02", "material_id": "RM04", "material_qty": 100, "material_req": 8, "material_metric": "kg", "material_cost": 4},
-
-#         # --- PRODUCT 3 (4 Materials) ---
-#         {"product_id": "FG03", "material_id": "RM01", "material_qty": 50, "material_req": 25, "material_metric": "kg", "material_cost": 2},
-#         {"product_id": "FG03", "material_id": "RM02", "material_qty": 50, "material_req": 15, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG03", "material_id": "RM07", "material_qty": 50, "material_req": 2, "material_metric": "kg", "material_cost": 15},
-#         {"product_id": "FG03", "material_id": "RM08", "material_qty": 50, "material_req": 8, "material_metric": "L", "material_cost": 5},
-
-#         # --- PRODUCT 4 (4 Materials) ---
-#         {"product_id": "FG04", "material_id": "RM01", "material_qty": 80, "material_req": 35, "material_metric": "kg", "material_cost": 2},
-#         {"product_id": "FG04", "material_id": "RM02", "material_qty": 80, "material_req": 20, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG04", "material_id": "RM03", "material_qty": 80, "material_req": 15, "material_metric": "kg", "material_cost": 8},
-#         {"product_id": "FG04", "material_id": "RM09", "material_qty": 80, "material_req": 10, "material_metric": "kg", "material_cost": 14},
-
-#         # --- PRODUCT 5 (3 Materials) ---
-#         {"product_id": "FG05", "material_id": "RM01", "material_qty": 200, "material_req": 130, "material_metric": "kg", "material_cost": 2},
-#         {"product_id": "FG05", "material_id": "RM10", "material_qty": 200, "material_req": 65, "material_metric": "L", "material_cost": 0},
-#         {"product_id": "FG05", "material_id": "RM11", "material_qty": 200, "material_req": 5, "material_metric": "kg", "material_cost": 1},
-
-#         # --- PRODUCT 6 (3 Materials) ---
-#         {"product_id": "FG06", "material_id": "RM01", "material_qty": 60, "material_req": 30, "material_metric": "kg", "material_cost": 2},
-#         {"product_id": "FG06", "material_id": "RM03", "material_qty": 60, "material_req": 25, "material_metric": "kg", "material_cost": 8},
-#         {"product_id": "FG06", "material_id": "RM07", "material_qty": 60, "material_req": 5, "material_metric": "kg", "material_cost": 15},
-
-#         # --- PRODUCT 7 (2 Materials) ---
-#         {"product_id": "FG07", "material_id": "RM02", "material_qty": 30, "material_req": 20, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG07", "material_id": "RM03", "material_qty": 30, "material_req": 10, "material_metric": "kg", "material_cost": 8},
-
-#         # --- PRODUCT 8 (4 Materials) ---
-#         {"product_id": "FG08", "material_id": "RM12", "material_qty": 20, "material_req": 8, "material_metric": "kg", "material_cost": 18},
-#         {"product_id": "FG08", "material_id": "RM02", "material_qty": 20, "material_req": 8, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG08", "material_id": "RM13", "material_qty": 20, "material_req": 3, "material_metric": "kg", "material_cost": 5},
-#         {"product_id": "FG08", "material_id": "RM14", "material_qty": 20, "material_req": 1, "material_metric": "kg", "material_cost": 11},
-
-#         # --- PRODUCT 9 (5 Materials) ---
-#         {"product_id": "FG09", "material_id": "RM15", "material_qty": 40, "material_req": 20, "material_metric": "kg", "material_cost": 4},
-#         {"product_id": "FG09", "material_id": "RM01", "material_qty": 40, "material_req": 12, "material_metric": "kg", "material_cost": 2},
-#         {"product_id": "FG09", "material_id": "RM03", "material_qty": 40, "material_req": 5, "material_metric": "kg", "material_cost": 8},
-#         {"product_id": "FG09", "material_id": "RM02", "material_qty": 40, "material_req": 2, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG09", "material_id": "RM16", "material_qty": 40, "material_req": 1, "material_metric": "kg", "material_cost": 22},
-
-#         # --- PRODUCT 10 (2 Materials) ---
-#         {"product_id": "FG10", "material_id": "RM02", "material_qty": 100, "material_req": 50, "material_metric": "kg", "material_cost": 3},
-#         {"product_id": "FG10", "material_id": "RM10", "material_qty": 100, "material_req": 50, "material_metric": "L", "material_cost": 0}
-#     ]
-
-#     # Batch execute data directly into SQLite
-#     db.execute(query, recipes_dataset)
-#     db.commit()
-
-#     return {
-#         "status": "success",
-#         "message": f"Successfully loaded 10 standard production code structures ({len(recipes_dataset)} rows total)."
-#     }
-
 
 @app.post('/get_item_by_id')
 def get_item_by_id(db: Session = Depends(get_db)):
@@ -425,11 +319,47 @@ def closing_stock(
     current_user: str = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Returns a dict of {ItemCode: AvailableStock} using today's date across all configured warehouses."""
+    """Returns a dict of {ItemCode: {qty, last_pur_prc}} using today's date across all configured warehouses."""
     return services.get_closing_stock(db)
 
-# @app.post('/MD_conversion_query')
-# def run_md_query(db : Session = Depends(get_db_md)):
+
+@app.post('/upload_price_excel')
+async def upload_price_excel(
+    file: UploadFile = File(...),
+    current_user: str = Depends(auth.get_current_admin_for_working)
+):
+    """
+    Admin-only. Upload a monthly price Excel with columns [ItemCode, Price].
+    The prices are stored in-memory and used in the Stock View pricing columns.
+    """
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(400, detail='Invalid file type. Only .xlsx / .xls accepted.')
+
+    save_dir = '/tmp/uploaded_files'
+    os.makedirs(save_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1]
+    file_location = f'{save_dir}/price_list_{datetime.now().strftime("%Y%m%d_%H%M%S")}{ext}'
+
+    with open(file_location, 'wb+') as f:
+        shutil.copyfileobj(file.file, f)
+
+    try:
+        price_dict = services.load_new_prices_from_excel(file_location)
+        return {'status': 'ok', 'items_loaded': len(price_dict)}
+    except Exception as e:
+        raise HTTPException(400, detail=f'Error loading price Excel: {e}')
+
+
+@app.get('/new_prices')
+def get_new_prices(
+    current_user: str = Depends(auth.get_current_user)
+):
+    """Returns the currently loaded monthly new-price dict: {ItemCode: price}."""
+    return services.get_new_prices()
+
+
+# @app.post('/run_MD_query')
+# def px_to_md_conversion_lookup(db : Session = Depends(get_db_md)):
 #     query = text(""" 
 #     ;WITH FormulaExplosion AS
 # (
@@ -490,63 +420,10 @@ def closing_stock(
 #     records = results.mappings().all()
 #     return records
 
-
-@app.post('/run_MD_query')
+@app.post('/run_query')
 def px_to_md_conversion_lookup(db : Session = Depends(get_db_md)):
     query = text(""" 
-    ;WITH FormulaExplosion AS
-(
-    -----------------------------------------------------------------
-    -- Direct Formula Components
-    -----------------------------------------------------------------
-    SELECT
-        BH.U_ITNO              AS PX_Code,
-        F1.U_ITEMCODE          AS MD_Code,
-        F1.U_QTY               AS Formula_Qty,
-        1                      AS Level
-    FROM [@C_BOMH] BH
-    INNER JOIN [@OFES] FH
-        ON BH.U_FORMULA = FH.U_FCODE
-    INNER JOIN [@FES1] F1
-        ON FH.DocEntry = F1.DocEntry
-    WHERE BH.U_STATUS = 'Active'
-      AND FH.U_STATUS = 'Active'
-
-    UNION ALL
-
-    -----------------------------------------------------------------
-    -- Recursive Formula Expansion
-    -----------------------------------------------------------------
-    SELECT
-        FE.PX_Code,
-        F1.U_ITEMCODE,
-        F1.U_QTY,
-        FE.Level + 1
-    FROM FormulaExplosion FE
-    INNER JOIN [@C_BOMH] BH
-        ON FE.MD_Code = BH.U_ITNO
-    INNER JOIN [@OFES] FH
-        ON BH.U_FORMULA = FH.U_FCODE
-    INNER JOIN [@FES1] F1
-        ON FH.DocEntry = F1.DocEntry
-    WHERE BH.U_STATUS = 'Active'
-      AND FH.U_STATUS = 'Active'
-)
-SELECT
-    PX_Code,
-    MD_Code,
-    Formula_Qty,
-    ROUND(
-        Formula_Qty * 100.0 /
-        SUM(Formula_Qty) OVER (PARTITION BY PX_Code),
-        4
-    ) AS Formula_Percent,
-    Level
-FROM FormulaExplosion
-ORDER BY
-    PX_Code,
-    MD_Code
-OPTION (MAXRECURSION 1000);
+    select top 2 * from OITM;
     """)
 
     results = db.execute(query)

@@ -881,13 +881,12 @@ def convert_px_to_md(px_codes : list[dict], conversion_dict):
 
 def get_closing_stock(db: Session):
     
-    
     today_date = datetime.today().strftime('%Y%m%d')
 
-    
     sql_query = text("""
         SELECT 
-            OITM.ItemCode, 
+            OITM.ItemCode,
+            OITM.LastPurPrc,
             SUM(m.InQty - m.OutQty) AS Closing_Qty
         FROM OITM (NOLOCK)
         JOIN OINM (NOLOCK) m ON OITM.ItemCode = m.ItemCode
@@ -901,10 +900,10 @@ def get_closing_stock(db: Session):
               'RMSTORE4', 'RMSTORE5', 'RMSTORE6'
           )
         GROUP BY 
-            OITM.ItemCode;
+            OITM.ItemCode,
+            OITM.LastPurPrc;
     """)
 
-    # 3. Execute the query, passing the dynamic variables as a dictionary
     result = db.execute(sql_query, {
         "date_to": today_date, 
         "whs_code": None
@@ -912,11 +911,47 @@ def get_closing_stock(db: Session):
     
     records = result.mappings().all()
     
-    # 2. Transform the list of rows into a single Key: Value dictionary
-    stock_dict = {row['ItemCode']: row['Closing_Qty'] for row in records}
+    # Return a dict: { ItemCode: { 'qty': <Closing_Qty>, 'last_pur_prc': <LastPurPrc> } }
+    stock_dict = {
+        row['ItemCode']: {
+            'qty': float(row['Closing_Qty']) if row['Closing_Qty'] is not None else 0.0,
+            'last_pur_prc': float(row['LastPurPrc']) if row['LastPurPrc'] is not None else 0.0
+        }
+        for row in records
+    }
     
-    # Return the clean dictionary
     return stock_dict
+
+
+# ── IN-MEMORY MONTHLY PRICE STORE ─────────────────────────────────────────────
+# Holds the latest price Excel uploaded by admin: { ItemCode (str): price (float) }
+_monthly_price_store: dict = {}
+
+
+def load_new_prices_from_excel(filepath: str) -> dict:
+    """
+    Parse the monthly price Excel (columns: ItemCode, Price).
+    Updates the in-memory store and returns the new price dict.
+    """
+    global _monthly_price_store
+    df = pd.read_excel(filepath, engine='openpyxl')
+    df.columns = [c.strip() for c in df.columns]
+    print(df.columns)
+
+    if 'ItemCode' not in df.columns or 'Price' not in df.columns:
+        raise ValueError("Price Excel must have columns: ItemCode, Price")
+
+    df = df.dropna(subset=['ItemCode', 'Price'])
+    df['ItemCode'] = df['ItemCode'].astype(str).str.strip()
+    df['Price'] = pd.to_numeric(df['Price'], errors='coerce').fillna(0.0)
+
+    _monthly_price_store = dict(zip(df['ItemCode'], df['Price'].astype(float)))
+    return _monthly_price_store
+
+
+def get_new_prices() -> dict:
+    """Returns the current in-memory monthly price store."""
+    return _monthly_price_store
 
 
 def run_rf_explosion(rf_items: list[dict], db: Session) -> list[dict]:
