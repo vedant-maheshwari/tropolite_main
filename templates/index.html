@@ -1530,6 +1530,14 @@
                 }
 
                 bomData = await res.json();
+
+                // New response format: { bom_rows: [...], metadata_id: N }
+                if (bomData && !Array.isArray(bomData) && Array.isArray(bomData.bom_rows)) {
+                    currentMetadataId = bomData.metadata_id || null;
+                    bomData = bomData.bom_rows;
+                } else {
+                    currentMetadataId = null;
+                }
                 if (!bomData || bomData.length === 0) throw new Error('BOM query returned no results.');
 
                 // Show only the Per-FG BOM table — skip the waiting/final flow
@@ -1543,6 +1551,31 @@
                 const bomTabBtn = document.getElementById('bomTabBtn');
                 switchTab(bomTabBtn, 'bomTable');
                 showToast(`BOM table loaded — ${bomData.length} rows.`, 'success');
+
+                // Save BOM-only final Excel to backend (non-blocking)
+                // We treat every unique leaf Item Code as a row in the procurement file
+                if (currentMetadataId) {
+                    const token2 = localStorage.getItem('access_token');
+                    const bomAgg = {};
+                    for (const row of bomData) {
+                        let c = row['Item Code'] || '';
+                        if (!c) continue;
+                        const cu = c.toUpperCase();
+                        if (cu.startsWith('R&D') || cu.startsWith('FG')) c = cu;
+                        const qty = parseFloat(row['Item Projection']) || 0;
+                        const uom = row['Inventory_UOM'] || '';
+                        if (!bomAgg[c]) bomAgg[c] = { code: c, qty: 0, uom };
+                        bomAgg[c].qty += qty;
+                    }
+                    fetch(`${API_BASE}/save_final_procurement`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token2}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            metadata_id: currentMetadataId,
+                            rows: Object.values(bomAgg)
+                        })
+                    }).catch(e => console.warn('Could not save BOM-only Excel:', e));
+                }
                 resetUpload();
 
             } catch (err) {
@@ -1817,7 +1850,10 @@
             // break them and merge the resulting raw materials instead.
             const rfItems = [];
             for (const entry of pxConverted) {
-                for (const [code, qty] of Object.entries(entry)) {
+                for (const [rawCode, qty] of Object.entries(entry)) {
+                    let code = rawCode;
+                    const cu = code.toUpperCase();
+                    if (cu.startsWith('R&D') || cu.startsWith('FG')) code = cu;
                     if (code.startsWith('RF')) {
                         rfItems.push({ code, qty: parseFloat(qty) || 0 });
                     } else {
@@ -1843,8 +1879,10 @@
                     if (rfRes.ok) {
                         const rfRows = await rfRes.json();
                         for (const row of rfRows) {
-                            const code = row['Item Code'] || '';
+                            let code = row['Item Code'] || '';
                             if (!code) continue;
+                            const cu = code.toUpperCase();
+                            if (cu.startsWith('R&D') || cu.startsWith('FG')) code = cu;
                             const qty = parseFloat(row['Item Projection']) || 0;
                             const uom = row['Inventory_UOM'] || 'KG';
                             if (!agg[code]) agg[code] = { code, name: '', qty: 0, uom };

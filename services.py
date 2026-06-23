@@ -498,7 +498,15 @@ def run_query(json_payload: str, db: Session):
     finally:
         cursor.close()  # Always release the cursor to free SAP locks
 
-    return [dict(zip(columns, row)) for row in rows]
+    results = [dict(zip(columns, row)) for row in rows]
+    # Normalize R&D and FG item codes to uppercase so mixed-case entries
+    # in SAP (e.g. 'R&d111' vs 'R&D111') are treated as the same item.
+    for r in results:
+        code = r.get('Item Code') or ''
+        upper = code.upper()
+        if upper.startswith('R&D') or upper.startswith('FG'):
+            r['Item Code'] = upper
+    return results
 
 # ---------------------------------------------------------------------------------------
 
@@ -1110,7 +1118,14 @@ def run_rf_explosion(rf_items: list[dict], db: Session) -> list[dict]:
     rows = cursor.fetchall()
     cursor.close()
 
-    return [dict(zip(columns, row)) for row in rows]
+    results = [dict(zip(columns, row)) for row in rows]
+    # Normalize R&D and FG item codes to uppercase
+    for r in results:
+        code = r.get('Item Code') or ''
+        upper = code.upper()
+        if upper.startswith('R&D') or upper.startswith('FG'):
+            r['Item Code'] = upper
+    return results
 
 
 def cleanup_firebase():

@@ -248,7 +248,21 @@ async def get_bom_only(
     try:
         json_payload = services.process_file(file_location)
         results = services.run_query(json_payload, db)
-        return results
+
+        IST = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(IST)
+        metadata = models.FileUploadMetaData(
+            user=current_user,
+            date_uploaded=now_ist.date(),
+            time_uploaded=now_ist.time().isoformat(timespec='seconds'),
+            file_uploaded=file_location,
+            final_procurement_file='Pending'
+        )
+        db_admin.add(metadata)
+        db_admin.commit()
+        db_admin.refresh(metadata)
+
+        return {'bom_rows': results, 'metadata_id': metadata.id}
     except Exception as e:
         raise HTTPException(400, detail=f'Error occurred: {e}')
 
