@@ -16,7 +16,8 @@ import os
 import shutil
 from fastapi.middleware.cors import CORSMiddleware
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
+from fastapi.responses import FileResponse
 
 app = FastAPI()
 templates = Jinja2Templates(directory='templates')
@@ -161,7 +162,10 @@ async def upload_excel(
     save_dir = '/tmp/uploaded_files'
     os.makedirs(save_dir, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]
-    file_location = f'{save_dir}/{datetime.now()}{ext}'
+    IST = timezone(timedelta(hours=5, minutes=30))
+    ts_str = datetime.now(IST).strftime('%Y%m%d_%H%M%S')
+    original_stem = os.path.splitext(file.filename)[0]
+    file_location = f'{save_dir}/{original_stem}_{ts_str}{ext}'
 
     with open(file_location, "wb+") as f:
         shutil.copyfileobj(file.file, f)
@@ -194,19 +198,22 @@ async def upload_excel(
         print('px_code sent')
         print(current_user)
 
+        IST = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(IST)
+
         metadata = models.FileUploadMetaData(
             user = current_user,
-            date_uploaded = date.today(),
-            time_uploaded = datetime.now().time().isoformat(timespec='seconds'),
+            date_uploaded = now_ist.date(),
+            time_uploaded = now_ist.time().isoformat(timespec='seconds'),
             file_uploaded = file_location,
-            final_procurement_file = file_location
+            final_procurement_file = 'Pending'
         )
 
         db_admin.add(metadata)
         db_admin.commit()
         db_admin.refresh(metadata)
         
-        return results
+        return {'bom_rows': results, 'metadata_id': metadata.id}
     
     except Exception as e:
         raise HTTPException(400, detail=f'Error occurred: {e}')
@@ -226,7 +233,10 @@ async def get_bom_only(
     save_dir = '/tmp/uploaded_files'
     os.makedirs(save_dir, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]
-    file_location = f'{save_dir}/{datetime.now()}{ext}'
+    IST = timezone(timedelta(hours=5, minutes=30))
+    ts_str = datetime.now(IST).strftime('%Y%m%d_%H%M%S')
+    original_stem = os.path.splitext(file.filename)[0]
+    file_location = f'{save_dir}/{original_stem}_{ts_str}{ext}'
 
     with open(file_location, "wb+") as f:
         shutil.copyfileobj(file.file, f)
@@ -263,6 +273,80 @@ async def explode_rf(
         return results
     except Exception as e:
         raise HTTPException(400, detail=f'Error occurred during RF explosion: {e}')
+
+
+class FinalProcurementRow(BaseModel):
+    code: str
+    qty: float
+    uom: str = ''
+
+
+class SaveFinalRequest(BaseModel):
+    metadata_id: int
+    rows: List[FinalProcurementRow]
+
+
+@app.post('/save_final_procurement')
+async def save_final_procurement(
+    body: SaveFinalRequest,
+    current_user: str = Depends(auth.get_current_user),
+    db_admin: Session = Depends(get_db_admin)
+):
+    """
+    Called from the frontend after final results are built.
+    Generates an Excel file from the aggregated rows, saves it to /tmp,
+    and updates the metadata record's final_procurement_file path.
+    """
+    import pandas as pd
+
+    meta = db_admin.query(models.FileUploadMetaData).filter(
+        models.FileUploadMetaData.id == body.metadata_id
+    ).first()
+    if not meta:
+        raise HTTPException(404, detail='Metadata record not found')
+
+    save_dir = '/tmp/uploaded_files'
+    os.makedirs(save_dir, exist_ok=True)
+
+    IST = timezone(timedelta(hours=5, minutes=30))
+    ts_str = datetime.now(IST).strftime('%Y%m%d_%H%M%S')
+    excel_path = f'{save_dir}/final_procurement_{ts_str}.xlsx'
+
+    df = pd.DataFrame([
+        {'Item Code': r.code, 'Required Qty': round(r.qty, 4), 'UOM': r.uom}
+        for r in body.rows
+    ])
+    df.to_excel(excel_path, index=False)
+
+    meta.final_procurement_file = excel_path
+    db_admin.commit()
+
+    return {'status': 'saved', 'file': os.path.basename(excel_path)}
+
+
+@app.get('/download_procurement/{metadata_id}')
+async def download_procurement(
+    metadata_id: int,
+    current_user: str = Depends(auth.get_current_admin_for_working),
+    db_admin: Session = Depends(get_db_admin)
+):
+    """Admin-only: download the saved final procurement Excel for a given metadata record."""
+    meta = db_admin.query(models.FileUploadMetaData).filter(
+        models.FileUploadMetaData.id == metadata_id
+    ).first()
+    if not meta:
+        raise HTTPException(404, detail='Record not found')
+    if not meta.final_procurement_file or meta.final_procurement_file == 'Pending':
+        raise HTTPException(404, detail='Final procurement file not yet generated')
+    if not os.path.exists(meta.final_procurement_file):
+        raise HTTPException(404, detail='File not found on server (may have been cleaned up)')
+
+    filename = os.path.basename(meta.final_procurement_file)
+    return FileResponse(
+        path=meta.final_procurement_file,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename=filename
+    )
 
 
 @app.get('/admin', response_class=HTMLResponse)

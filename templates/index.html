@@ -1282,6 +1282,7 @@
         let finalData = [];
         let closingStock = {};   // { ItemCode: { qty, last_pur_prc } }
         let newPrices = {};      // { ItemCode: price }  — from monthly admin upload
+        let currentMetadataId = null;  // set after /upload_excel, used to save final Excel
 
         // ── TOAST ─────────────────────────────────────────────────
         function showToast(msg, type = '') {
@@ -1465,6 +1466,16 @@
                 }
 
                 bomData = await res.json();
+
+                // New response is { bom_rows: [...], metadata_id: N }
+                // (fallback: if server returns a plain array, treat whole response as bom_rows)
+                if (bomData && !Array.isArray(bomData) && Array.isArray(bomData.bom_rows)) {
+                    currentMetadataId = bomData.metadata_id || null;
+                    bomData = bomData.bom_rows;
+                } else {
+                    currentMetadataId = null;
+                }
+
                 if (!bomData || bomData.length === 0) throw new Error('BOM query returned no results.');
 
                 spinnerText.textContent = 'Sending PX codes for conversion…';
@@ -1775,14 +1786,23 @@
 
             const agg = {};
             for (const row of bom) {
-                const code = row['Item Code'] || '';
+                let code = row['Item Code'] || '';
                 if (!code) continue;
+
+                // Normalize R&D (case-insensitive) and FG codes to uppercase
+                // so that e.g. 'R&d111' and 'R&D111' are aggregated together
+                const codeUpper = code.toUpperCase();
+                if (codeUpper.startsWith('R&D') || codeUpper.startsWith('FG')) {
+                    code = codeUpper;
+                }
 
                 // PX items are sent for Firebase conversion — exclude from direct agg
                 if (code.startsWith('PX')) continue;
 
                 // Skip intermediate/semi-finished nodes (they appear as a parent elsewhere)
                 if (parentSet.has(code)) continue;
+                // Also check the original code in parentSet (before normalisation)
+                if (parentSet.has(row['Item Code'])) continue;
 
                 const qty = parseFloat(row['Item Projection']) || 0;
                 const name = row['Finish Good Name'] || '';
@@ -1849,6 +1869,22 @@
             // Fetch closing stock + new prices after showing results (non-blocking)
             await Promise.all([fetchClosingStock(), fetchNewPrices()]);
             if (stockViewMode) renderFinalTable();
+
+            // Persist final Excel to backend (non-blocking — fire & forget)
+            if (currentMetadataId) {
+                const token = localStorage.getItem('access_token');
+                fetch(`${API_BASE}/save_final_procurement`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        metadata_id: currentMetadataId,
+                        rows: finalData.map(r => ({ code: r.code, qty: r.qty, uom: r.uom || '' }))
+                    })
+                }).catch(e => console.warn('Could not save final procurement Excel:', e));
+            }
 
             // Dev mode BOM tables
             if (devMode) {

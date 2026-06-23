@@ -892,6 +892,13 @@
                             </svg>
                             <input type="text" id="logSearch" placeholder="Search logs…" oninput="filterLogsTable()">
                         </div>
+                        <button class="btn btn-ghost btn-sm" onclick="loadLogs()" title="Refresh logs">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Refresh
+                        </button>
                     </div>
 
                     <div class="data-table-container">
@@ -1287,6 +1294,26 @@
             }
             tb.innerHTML = logs.map(log => {
                 const timeStr = log.time_uploaded ? log.time_uploaded.split('.')[0] : '—';
+                const isPending = !log.final_procurement_file || log.final_procurement_file === 'Pending';
+                const fname = isPending ? null : log.final_procurement_file.split('/').pop();
+
+                const finalCell = isPending
+                    ? `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim)">Pending</span>`
+                    : `<div style="display:flex;align-items:center;gap:6px">
+                           <span class="filepath-text" title="${escHtml(log.final_procurement_file)}">${escHtml(fname)}</span>
+                           <a href="${API_BASE}/download_procurement/${log.id}"
+                              title="Download Excel"
+                              onclick="return downloadProcurement(event, ${log.id})"
+                              style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;text-decoration:none;transition:all 0.15s;"
+                              onmouseover="this.style.background='var(--green-light)';this.style.color='var(--green)';this.style.borderColor='var(--green)';"
+                              onmouseout="this.style.background='var(--surface)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';">
+                               <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                               </svg>
+                           </a>
+                       </div>`;
+
                 return `
                     <tr>
                         <td style="font-family:var(--mono);font-size:0.72rem;color:var(--text-dim)">${log.id}</td>
@@ -1294,10 +1321,7 @@
                         <td style="font-family:var(--mono);font-size:0.78rem">${log.date_uploaded || '—'}</td>
                         <td style="font-family:var(--mono);font-size:0.78rem">${timeStr}</td>
                         <td><span class="filepath-text" title="${escHtml(log.file_uploaded)}">${escHtml(log.file_uploaded.split('/').pop())}</span></td>
-                        <td>${log.final_procurement_file && log.final_procurement_file !== 'Pending'
-                            ? `<span class="filepath-text" title="${escHtml(log.final_procurement_file)}">${escHtml(log.final_procurement_file.split('/').pop())}</span>`
-                            : `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim)">Pending</span>`
-                        }</td>
+                        <td>${finalCell}</td>
                     </tr>`;
             }).join('');
         }
@@ -1309,6 +1333,32 @@
                 (l.file_uploaded || '').toLowerCase().includes(q) ||
                 (l.final_procurement_file || '').toLowerCase().includes(q)
             ));
+        }
+
+        // ── DOWNLOAD FINAL PROCUREMENT ──────────────────────────────
+        async function downloadProcurement(event, metadataId) {
+            event.preventDefault();
+            if (!adminToken) { showToast('Not authenticated', 'error'); return false; }
+            try {
+                const res = await fetch(`${API_BASE}/download_procurement/${metadataId}`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || `Server error ${res.status}`);
+                }
+                const blob = await res.blob();
+                const disposition = res.headers.get('Content-Disposition') || '';
+                const nameMatch = disposition.match(/filename="?([^"]+)"?/);
+                const fname = nameMatch ? nameMatch[1] : `final_procurement_${metadataId}.xlsx`;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = fname; a.click();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                showToast('Download failed: ' + err.message, 'error');
+            }
+            return false;
         }
 
         // ── PRICE LIST UPLOAD ──────────────────────────────────────
