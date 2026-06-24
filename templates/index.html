@@ -1552,29 +1552,27 @@
                 switchTab(bomTabBtn, 'bomTable');
                 showToast(`BOM table loaded — ${bomData.length} rows.`, 'success');
 
-                // Save BOM-only final Excel to backend (non-blocking)
-                // We treat every unique leaf Item Code as a row in the procurement file
+                // Save full Per-FG BOM Excel to backend
                 if (currentMetadataId) {
                     const token2 = localStorage.getItem('access_token');
-                    const bomAgg = {};
-                    for (const row of bomData) {
-                        let c = row['Item Code'] || '';
-                        if (!c) continue;
-                        const cu = c.toUpperCase();
-                        if (cu.startsWith('R&D') || cu.startsWith('FG')) c = cu;
-                        const qty = parseFloat(row['Item Projection']) || 0;
-                        const uom = row['Inventory_UOM'] || '';
-                        if (!bomAgg[c]) bomAgg[c] = { code: c, qty: 0, uom };
-                        bomAgg[c].qty += qty;
+                    try {
+                        const saveRes = await fetch(`${API_BASE}/save_bom_excel`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token2}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                metadata_id: currentMetadataId,
+                                rows: bomData   // full Per-FG BOM rows, all columns
+                            }, (_key, value) => value === undefined ? null : value)
+                        });
+                        if (!saveRes.ok) {
+                            const errData = await saveRes.json().catch(() => ({}));
+                            console.error('Per-FG BOM save failed:', saveRes.status, errData);
+                            showToast(`Warning: BOM Excel save failed (${saveRes.status}) — admin download may not work.`, 'error');
+                        }
+                    } catch (saveErr) {
+                        console.error('Per-FG BOM save error:', saveErr);
+                        showToast('Warning: Could not save Per-FG BOM Excel to server.', 'error');
                     }
-                    fetch(`${API_BASE}/save_final_procurement`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token2}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            metadata_id: currentMetadataId,
-                            rows: Object.values(bomAgg)
-                        })
-                    }).catch(e => console.warn('Could not save BOM-only Excel:', e));
                 }
                 resetUpload();
 
@@ -2064,6 +2062,7 @@
         function goToUpload() {
             clearInterval(pollingInterval);
             bomData = []; finalData = []; closingStock = {}; newPrices = {};
+            currentMetadataId = null;  // clear stale ID so next BOM-only run starts fresh
             document.getElementById('finalTableBody').innerHTML = '';
             document.getElementById('bomTablesContainer').innerHTML = '';
             document.getElementById('devModeToggle').checked = false;

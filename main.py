@@ -338,6 +338,69 @@ async def save_final_procurement(
     return {'status': 'saved', 'file': os.path.basename(excel_path)}
 
 
+@app.post('/save_bom_excel')
+async def save_bom_excel(
+    request: Request,
+    current_user: str = Depends(auth.get_current_user),
+    db_admin: Session = Depends(get_db_admin)
+):
+    """
+    Called from the frontend after BOM-Only results are rendered.
+    Saves the full Per-FG BOM rows as an Excel (one sheet per FG),
+    then updates the metadata record's final_procurement_file path.
+    Uses raw request body to avoid Pydantic v2 issues with dict keys
+    that contain spaces (e.g. 'Finish Good', 'Item Code').
+    """
+    import pandas as pd
+    from collections import defaultdict
+
+    body = await request.json()
+    metadata_id = body.get('metadata_id')
+    rows = body.get('rows', [])
+
+    if not metadata_id:
+        raise HTTPException(400, detail='metadata_id is required')
+    if not rows:
+        raise HTTPException(400, detail='rows list is empty')
+
+    meta = db_admin.query(models.FileUploadMetaData).filter(
+        models.FileUploadMetaData.id == metadata_id
+    ).first()
+    if not meta:
+        raise HTTPException(404, detail='Metadata record not found')
+
+    save_dir = '/tmp/uploaded_files'
+    os.makedirs(save_dir, exist_ok=True)
+
+    IST = timezone(timedelta(hours=5, minutes=30))
+    ts_str = datetime.now(IST).strftime('%Y%m%d_%H%M%S')
+    excel_path = f'{save_dir}/per_fg_bom_{ts_str}.xlsx'
+
+    # Group rows by 'Finish Good' value
+    fg_groups = defaultdict(list)
+    for row in rows:
+        fg = str(row.get('Finish Good') or row.get('finish_good') or 'Unknown')
+        fg_groups[fg].append(row)
+
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        for fg, fg_rows in fg_groups.items():
+            df = pd.DataFrame(fg_rows)
+            # Sanitise sheet name: Excel limit 31 chars, no special chars
+            sheet_name = (
+                fg[:31]
+                .replace('/', '-').replace('\\', '-')
+                .replace('*', '').replace('?', '')
+                .replace('[', '').replace(']', '').replace(':', '')
+                .strip() or 'Unknown'
+            )
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    meta.final_procurement_file = excel_path
+    db_admin.commit()
+
+    return {'status': 'saved', 'file': os.path.basename(excel_path)}
+
+
 @app.get('/download_procurement/{metadata_id}')
 async def download_procurement(
     metadata_id: int,
