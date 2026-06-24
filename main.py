@@ -457,6 +457,16 @@ async def cleanup_firebase(current_user: str = Depends(auth.get_current_user)):
     services.cleanup_firebase()
     return {'status': 'cleared'}
 
+@app.post('/clean_tmp')
+async def clean_tmp_folder(current_user: str = Depends(auth.get_current_admin_for_working)):
+    """Admin-only: Wipes out the /tmp/uploaded_files directory in Vercel to free space."""
+    save_dir = '/tmp/uploaded_files'
+    if os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+        os.makedirs(save_dir, exist_ok=True)
+        return {'status': 'success', 'message': 'Temporary files cleaned.'}
+    return {'status': 'success', 'message': 'No temporary files to clean.'}
+
 @app.get('/health')
 def health():
     return {'healthy'}

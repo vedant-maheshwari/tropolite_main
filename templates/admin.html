@@ -20,7 +20,9 @@
 
     <!-- Google Fonts — same as procurement portal -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
 
     <style>
         /* ── BRAND TOKENS — mirrors procurement portal exactly ── */
@@ -49,8 +51,8 @@
 
             /* sidebar-specific */
             --sidebar-bg: #1c1a18;
-            --sidebar-border: rgba(255,255,255,0.07);
-            --sidebar-text: rgba(255,255,255,0.65);
+            --sidebar-border: rgba(255, 255, 255, 0.07);
+            --sidebar-text: rgba(255, 255, 255, 0.65);
             --sidebar-active-bg: var(--crimson);
 
             --mono: 'JetBrains Mono', Consolas, monospace;
@@ -58,11 +60,15 @@
             --radius: 8px;
             --radius-sm: 5px;
             --radius-lg: 12px;
-            --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.04);
-            --shadow-lg: 0 4px 20px rgba(0,0,0,0.10);
+            --shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 2px 8px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.10);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: var(--sans);
@@ -104,11 +110,24 @@
             animation: toast-in 0.25s forwards;
         }
 
-        @keyframes toast-in { to { transform: translateY(0); opacity: 1; } }
+        @keyframes toast-in {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
 
-        .toast.toast-success { border-left-color: var(--green); }
-        .toast.toast-error   { border-left-color: var(--crimson); }
-        .toast.toast-warning { border-left-color: var(--amber); }
+        .toast.toast-success {
+            border-left-color: var(--green);
+        }
+
+        .toast.toast-error {
+            border-left-color: var(--crimson);
+        }
+
+        .toast.toast-warning {
+            border-left-color: var(--amber);
+        }
 
         .toast-content {
             display: flex;
@@ -130,7 +149,10 @@
             border-radius: 4px;
             transition: color 0.15s;
         }
-        .toast-close:hover { color: var(--text); }
+
+        .toast-close:hover {
+            color: var(--text);
+        }
 
         /* ── LOGIN ───────────────────────────────────────────── */
         .login-container {
@@ -143,13 +165,21 @@
             animation: fadeIn 0.3s ease-out;
         }
 
-        .login-wrap { width: 100%; max-width: 360px; }
+        .login-wrap {
+            width: 100%;
+            max-width: 360px;
+        }
 
         .login-logo {
             text-align: center;
             margin-bottom: 2rem;
         }
-        .login-logo img { height: 72px; width: auto; }
+
+        .login-logo img {
+            height: 72px;
+            width: auto;
+        }
+
         .login-logo p {
             font-size: 0.72rem;
             color: var(--text-muted);
@@ -167,7 +197,10 @@
             box-shadow: var(--shadow-lg);
         }
 
-        .field { margin-bottom: 1rem; }
+        .field {
+            margin-bottom: 1rem;
+        }
+
         .field label {
             display: block;
             font-size: 0.7rem;
@@ -177,6 +210,7 @@
             text-transform: uppercase;
             letter-spacing: 0.07em;
         }
+
         .field input,
         .field select {
             width: 100%;
@@ -193,10 +227,11 @@
             -moz-appearance: none;
             appearance: none;
         }
+
         .field input:focus,
         .field select:focus {
             border-color: var(--crimson);
-            box-shadow: 0 0 0 3px rgba(147,47,49,0.1);
+            box-shadow: 0 0 0 3px rgba(147, 47, 49, 0.1);
             background: white;
         }
 
@@ -234,7 +269,11 @@
             color: white;
             justify-content: center;
         }
-        .btn-primary:hover { background: var(--crimson-dark); }
+
+        .btn-primary:hover {
+            background: var(--crimson-dark);
+        }
+
         .btn-primary:disabled {
             background: var(--border2);
             color: var(--text-dim);
@@ -246,6 +285,7 @@
             color: var(--text-muted);
             border: 1px solid var(--border);
         }
+
         .btn-ghost:hover {
             background: var(--surface2);
             color: var(--text);
@@ -257,13 +297,17 @@
             padding: 0.7rem 1.1rem;
         }
 
-        .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.78rem; }
+        .btn-sm {
+            padding: 0.35rem 0.7rem;
+            font-size: 0.78rem;
+        }
 
         .btn-danger-ghost {
             background: transparent;
             color: var(--text-muted);
             border: 1px solid var(--border);
         }
+
         .btn-danger-ghost:hover {
             background: var(--crimson-light);
             color: var(--crimson);
@@ -296,19 +340,22 @@
             align-items: center;
             gap: 0.75rem;
         }
+
         .sidebar-header img {
             height: 28px;
             filter: brightness(0) invert(1);
         }
+
         .sidebar-header .title-wrap h2 {
             font-size: 0.9rem;
             font-weight: 600;
             letter-spacing: -0.01em;
         }
+
         .sidebar-header .title-wrap span {
             font-family: var(--mono);
             font-size: 0.6rem;
-            color: rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.4);
             text-transform: uppercase;
             letter-spacing: 0.08em;
         }
@@ -334,15 +381,23 @@
             transition: all 0.15s;
             user-select: none;
         }
+
         .nav-item:hover {
-            background: rgba(255,255,255,0.06);
+            background: rgba(255, 255, 255, 0.06);
             color: white;
         }
+
         .nav-item.active {
             background: var(--crimson);
             color: white;
         }
-        .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.9; }
+
+        .nav-item svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
 
         .sidebar-footer {
             padding: 1rem 1.25rem;
@@ -352,7 +407,11 @@
             gap: 0.75rem;
         }
 
-        .user-profile { display: flex; align-items: center; gap: 0.65rem; }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
 
         .avatar {
             width: 30px;
@@ -368,7 +427,12 @@
             flex-shrink: 0;
         }
 
-        .user-details { display: flex; flex-direction: column; overflow: hidden; }
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
         .user-name {
             font-size: 0.78rem;
             font-weight: 600;
@@ -377,9 +441,10 @@
             text-overflow: ellipsis;
             color: white;
         }
+
         .user-role {
             font-size: 0.62rem;
-            color: rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.4);
             font-family: var(--mono);
             text-transform: uppercase;
             letter-spacing: 0.06em;
@@ -391,15 +456,16 @@
             font-size: 0.78rem;
             font-weight: 500;
             font-family: var(--sans);
-            background: rgba(255,255,255,0.05);
-            color: rgba(255,255,255,0.65);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: var(--radius-sm);
             cursor: pointer;
             transition: all 0.15s;
         }
+
         .btn-signout-db:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             color: white;
         }
 
@@ -430,6 +496,7 @@
             letter-spacing: -0.01em;
             color: var(--text);
         }
+
         .topbar-title p {
             font-size: 0.72rem;
             color: var(--text-muted);
@@ -445,8 +512,16 @@
         }
 
         /* Panel Visibility */
-        .tab-panel { display: none; animation: fadeIn 0.25s ease-out; flex: 1; }
-        .tab-panel.active { display: flex; flex-direction: column; }
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.25s ease-out;
+            flex: 1;
+        }
+
+        .tab-panel.active {
+            display: flex;
+            flex-direction: column;
+        }
 
         /* ── USER MANAGEMENT TAB ────────────────────────────── */
         .toolbar {
@@ -457,7 +532,12 @@
             gap: 1rem;
         }
 
-        .search-box { position: relative; max-width: 300px; width: 100%; }
+        .search-box {
+            position: relative;
+            max-width: 300px;
+            width: 100%;
+        }
+
         .search-box input {
             width: 100%;
             padding: 0.55rem 0.85rem 0.55rem 2.1rem;
@@ -470,11 +550,16 @@
             color: var(--text);
             transition: border-color 0.15s, box-shadow 0.15s;
         }
-        .search-box input::placeholder { color: var(--text-dim); }
+
+        .search-box input::placeholder {
+            color: var(--text-dim);
+        }
+
         .search-box input:focus {
             border-color: var(--crimson);
-            box-shadow: 0 0 0 3px rgba(147,47,49,0.1);
+            box-shadow: 0 0 0 3px rgba(147, 47, 49, 0.1);
         }
+
         .search-box svg {
             position: absolute;
             left: 0.65rem;
@@ -496,7 +581,11 @@
             flex: 1;
         }
 
-        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
 
         .data-table th {
             background: var(--surface2);
@@ -519,8 +608,13 @@
             vertical-align: middle;
         }
 
-        .data-table tr:last-child td { border-bottom: none; }
-        .data-table tbody tr:hover td { background: var(--surface2); }
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tbody tr:hover td {
+            background: var(--surface2);
+        }
 
         /* Badges */
         .badge {
@@ -532,11 +626,24 @@
             font-size: 0.72rem;
             font-weight: 500;
         }
-        .badge-admin { background: rgba(147,47,49,0.08); color: var(--crimson); }
-        .badge-user  { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+
+        .badge-admin {
+            background: rgba(147, 47, 49, 0.08);
+            color: var(--crimson);
+        }
+
+        .badge-user {
+            background: var(--surface2);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
 
         /* Actions */
-        .actions-wrap { display: flex; align-items: center; gap: 6px; }
+        .actions-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         .btn-action {
             display: inline-flex;
@@ -551,7 +658,12 @@
             color: var(--text-muted);
             transition: all 0.15s;
         }
-        .btn-action:hover { background: var(--surface2); color: var(--text); }
+
+        .btn-action:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
         .btn-action.btn-delete:hover {
             background: var(--crimson-light);
             color: var(--crimson);
@@ -578,7 +690,7 @@
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            background: rgba(28,26,24,0.45);
+            background: rgba(28, 26, 24, 0.45);
             backdrop-filter: blur(3px);
             display: none;
             align-items: center;
@@ -598,7 +710,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            animation: slideDown 0.22s cubic-bezier(0.16,1,0.3,1);
+            animation: slideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .modal-header {
@@ -608,7 +720,12 @@
             align-items: center;
             justify-content: space-between;
         }
-        .modal-header h3 { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+
+        .modal-header h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+        }
 
         .modal-close {
             background: none;
@@ -625,9 +742,15 @@
             border-radius: 4px;
             transition: all 0.15s;
         }
-        .modal-close:hover { background: var(--surface2); color: var(--text); }
 
-        .modal-body { padding: 1.5rem; }
+        .modal-close:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
 
         .modal-footer {
             padding: 1rem 1.5rem;
@@ -642,7 +765,7 @@
         .spinner {
             width: 14px;
             height: 14px;
-            border: 2px solid rgba(0,0,0,0.08);
+            border: 2px solid rgba(0, 0, 0, 0.08);
             border-top-color: currentColor;
             border-radius: 50%;
             animation: spin 0.75s linear infinite;
@@ -650,13 +773,33 @@
             flex-shrink: 0;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         /* ── ANIMATIONS ─────────────────────────────────────── */
-        @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
         @keyframes slideDown {
-            from { transform: translateY(-16px); opacity: 0; }
-            to   { transform: translateY(0);     opacity: 1; }
+            from {
+                transform: translateY(-16px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         /* Empty / loading states */
@@ -679,14 +822,42 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .dashboard-container { flex-direction: column; }
-            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--sidebar-border); }
-            .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 0.6rem; }
-            .sidebar-footer { display: none; }
-            .main-content { height: auto; overflow-y: visible; }
-            .topbar { padding: 0 1.25rem; }
-            .content-body { padding: 1.25rem; }
+            body {
+                flex-direction: column;
+            }
+
+            .dashboard-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--sidebar-border);
+            }
+
+            .sidebar-nav {
+                flex-direction: row;
+                overflow-x: auto;
+                padding: 0.6rem;
+            }
+
+            .sidebar-footer {
+                display: none;
+            }
+
+            .main-content {
+                height: auto;
+                overflow-y: visible;
+            }
+
+            .topbar {
+                padding: 0 1.25rem;
+            }
+
+            .content-body {
+                padding: 1.25rem;
+            }
         }
 
         /* ── PRICE UPLOAD PANEL ─────────────────────────────── */
@@ -747,7 +918,9 @@
             color: var(--text-muted);
         }
 
-        .price-upload-hint strong { color: var(--text); }
+        .price-upload-hint strong {
+            color: var(--text);
+        }
 
         .price-status {
             margin-top: 0.75rem;
@@ -755,8 +928,14 @@
             font-family: var(--mono);
             min-height: 1.1rem;
         }
-        .price-status.ok  { color: var(--green); }
-        .price-status.err { color: var(--crimson); }
+
+        .price-status.ok {
+            color: var(--green);
+        }
+
+        .price-status.err {
+            color: var(--crimson);
+        }
     </style>
 </head>
 
@@ -775,11 +954,13 @@
                 <form id="adminLoginForm">
                     <div class="field">
                         <label>Email / Username</label>
-                        <input type="text" id="adminUser" placeholder="admin@example.com" required autocomplete="username">
+                        <input type="text" id="adminUser" placeholder="admin@example.com" required
+                            autocomplete="username">
                     </div>
                     <div class="field" style="margin-bottom:1.25rem">
                         <label>Password</label>
-                        <input type="password" id="adminPass" placeholder="••••••••" required autocomplete="current-password">
+                        <input type="password" id="adminPass" placeholder="••••••••" required
+                            autocomplete="current-password">
                     </div>
                     <button type="submit" class="btn btn-primary btn-full" id="loginBtn">Sign In</button>
                 </form>
@@ -805,21 +986,21 @@
                 <div class="nav-item active" data-tab="users" onclick="switchTab('users')">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                     User Management
                 </div>
                 <div class="nav-item" data-tab="logs" onclick="switchTab('logs')">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Conversion Logs
                 </div>
                 <div class="nav-item" data-tab="prices" onclick="switchTab('prices')">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Price List
                 </div>
@@ -855,13 +1036,15 @@
                         <div class="search-box">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                            <input type="text" id="userSearch" placeholder="Search by email…" oninput="filterUsersTable()">
+                            <input type="text" id="userSearch" placeholder="Search by email…"
+                                oninput="filterUsersTable()">
                         </div>
                         <button class="btn btn-primary btn-sm" onclick="openUserModal(false)">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="12" height="12">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
                             </svg>
                             Create User
                         </button>
@@ -888,14 +1071,14 @@
                         <div class="search-box">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             <input type="text" id="logSearch" placeholder="Search logs…" oninput="filterLogsTable()">
                         </div>
                         <button class="btn btn-ghost btn-sm" onclick="loadLogs()" title="Refresh logs">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Refresh
                         </button>
@@ -924,7 +1107,8 @@
                         <h2>Monthly Price List Upload</h2>
                         <p class="sub">
                             Upload an Excel file with columns <strong>ItemCode</strong> and <strong>Price</strong>.<br>
-                            The "New Price" column in the procurement Stock View will use these prices for deficit quantities.
+                            The "New Price" column in the procurement Stock View will use these prices for deficit
+                            quantities.
                             Upload fresh each month — prices are held in-memory until the server restarts.
                         </p>
 
@@ -933,10 +1117,12 @@
                             <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                 style="color:var(--text-dim);margin:0 auto 0.75rem;display:block">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                             </svg>
-                            <p class="price-upload-hint" id="priceDropHint"><strong>Click to select</strong> or drag &amp; drop</p>
-                            <p class="price-upload-hint" style="margin-top:0.2rem;color:var(--text-dim)">.xlsx &nbsp;·&nbsp; .xls</p>
+                            <p class="price-upload-hint" id="priceDropHint"><strong>Click to select</strong> or drag
+                                &amp; drop</p>
+                            <p class="price-upload-hint" style="margin-top:0.2rem;color:var(--text-dim)">.xlsx
+                                &nbsp;·&nbsp; .xls</p>
                         </div>
 
                         <div class="price-status" id="priceStatus"></div>
@@ -945,7 +1131,7 @@
                             style="margin-top:0.25rem;min-width:180px" onclick="uploadPriceExcel()">
                             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                             </svg>
                             Upload Price List
                         </button>
@@ -981,7 +1167,8 @@
                     <div class="field">
                         <label id="modalPassLabel">Password</label>
                         <input type="password" id="modalUserPassword" required placeholder="••••••••">
-                        <p id="modalPassHint" style="margin-top:0.35rem; font-size:0.7rem; color:var(--text-dim); font-family:var(--mono); display:none;">
+                        <p id="modalPassHint"
+                            style="margin-top:0.35rem; font-size:0.7rem; color:var(--text-dim); font-family:var(--mono); display:none;">
                             Leave blank to keep existing password.
                         </p>
                     </div>
@@ -1103,7 +1290,7 @@
             document.getElementById('loginPanel').style.display = 'none';
             document.getElementById('dashboardPanel').style.display = 'flex';
             document.getElementById('sidebarUserEmail').textContent = username;
-            document.getElementById('userAvatar').textContent = username.substring(0,1).toUpperCase();
+            document.getElementById('userAvatar').textContent = username.substring(0, 1).toUpperCase();
             switchTab('users');
         }
 
@@ -1119,9 +1306,9 @@
 
         // ── TABS ──────────────────────────────────────────────────
         const TAB_DETAILS = {
-            users:  { title: 'User Management',  sub: 'Create, view, and manage system user access' },
-            logs:   { title: 'Conversion Logs',  sub: 'Review history of spreadsheet uploads and conversions' },
-            prices: { title: 'Price List',        sub: 'Upload the monthly price Excel for procurement cost calculations' }
+            users: { title: 'User Management', sub: 'Create, view, and manage system user access' },
+            logs: { title: 'Conversion Logs', sub: 'Review history of spreadsheet uploads and conversions' },
+            prices: { title: 'Price List', sub: 'Upload the monthly price Excel for procurement cost calculations' }
         };
 
         function switchTab(tabId) {
@@ -1223,11 +1410,11 @@
             const form = document.getElementById('userForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
 
-            const userId   = document.getElementById('modalUserId').value;
-            const email    = document.getElementById('modalUserEmail').value.trim();
-            const role     = parseInt(document.getElementById('modalUserRole').value);
+            const userId = document.getElementById('modalUserId').value;
+            const email = document.getElementById('modalUserEmail').value.trim();
+            const role = parseInt(document.getElementById('modalUserRole').value);
             const password = document.getElementById('modalUserPassword').value;
-            const saveBtn  = document.getElementById('saveUserBtn');
+            const saveBtn = document.getElementById('saveUserBtn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = `<span class="spinner" style="border-top-color:white;border-color:rgba(255,255,255,0.3);border-top-color:white;"></span> Saving…`;
 
