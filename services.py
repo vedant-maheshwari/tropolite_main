@@ -415,19 +415,24 @@ def run_query(json_payload: str, db: Session):
 
         -- ================================================================
         -- Conversion factor logic
+        -- The conversion factor belongs to the FINISH GOOD only.
+        -- We look it up keyed on [Finish Good] (the root FG item) and apply
+        -- it uniformly to every row in the explosion for that FG.
+        -- This is equivalent to converting the FG qty before explosion,
+        -- so sub-products are NOT given their own independent factor.
         -- ================================================================
 
-        -- Step 1: Lookup conversion factor per Parent_Code
+        -- Step 1: Lookup conversion factor keyed on [Finish Good] (root FG only)
         UPDATE t
         SET [Convertion Factor] = ISNULL(cd1.U_CONFACTR, 1)
-        FROM #BomResult t,
+        FROM #BomResult t
+        INNER JOIN
         (
             SELECT DISTINCT cd.U_CONFACTR, ch.U_ITNO
-            FROM [@C_ITMSTR] ch, [@C_ITMUOM] cd
-            WHERE cd.DocEntry = ch.DocEntry
-              AND cd.U_TOUOM <> ''
-        ) cd1
-        WHERE t.[Parent_Code] = cd1.U_ITNO;
+            FROM [@C_ITMSTR] ch
+            INNER JOIN [@C_ITMUOM] cd ON cd.DocEntry = ch.DocEntry
+            WHERE cd.U_TOUOM <> ''
+        ) cd1 ON t.[Finish Good] = cd1.U_ITNO;
 
         -- Step 2: Default conversion factor to 1 where still 0
         UPDATE t
@@ -435,7 +440,12 @@ def run_query(json_payload: str, db: Session):
         FROM #BomResult t
         WHERE [Convertion Factor] = 0.00;
 
-        -- Step 3: Recalculate Item Projection applying conversion factor
+        -- Step 3: Recalculate Item Projection applying the FG-level conversion factor.
+        -- The factor is applied uniformly to all rows in the explosion tree for that FG
+        -- (regardless of level), since every qty_per_fg was computed from the same FG_Qty seed.
+        -- For BOM Items with UOM='NO': apply the factor (pieces need unit conversion).
+        -- For Formula Items: always apply the factor.
+        -- For BOM Items with other UOMs: no factor (weight/volume units don't need it).
         UPDATE t
         SET [Item Projection] =
             CASE

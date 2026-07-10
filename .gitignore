@@ -10,3 +10,6 @@ excel-vault-*.json
 admin_portal/excel-vault-*.json
 admin_portal/
 useless/
+MDRM_1.xlsx
+MDRM.xlsx
+new_watchdog.py
