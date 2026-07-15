@@ -415,48 +415,53 @@ def run_query(json_payload: str, db: Session):
 
         -- ================================================================
         -- Conversion factor logic
-        -- The conversion factor belongs to the FINISH GOOD only.
-        -- We look it up keyed on [Finish Good] (the root FG item) and apply
-        -- it uniformly to every row in the explosion for that FG.
-        -- This is equivalent to converting the FG qty before explosion,
-        -- so sub-products are NOT given their own independent factor.
+        -- The CF belongs to the FINISH GOOD only and is used exclusively
+        -- to scale Formula Item quantities (which are defined per-batch-weight)
+        -- to per-FG-unit quantities.
+        --
+        -- BOM Items (PK, LB, RM sub-items, etc.) have their U_QTY already
+        -- expressed per-FG-unit in [@C_BOMD], so they must NOT receive any
+        -- additional CF multiplication.
         -- ================================================================
 
-        -- Step 1: Lookup conversion factor keyed on [Finish Good] (root FG only)
+        -- Step 1: Lookup conversion factor keyed on [Finish Good] (root FG only).
+        -- GROUP BY + MAX makes this deterministic when an FG has multiple UOM
+        -- entries in [@C_ITMUOM] (e.g. a G->KG weight entry AND a NO->CTN
+        -- piece-count entry). Previously SELECT DISTINCT returned multiple rows
+        -- per FG, causing a non-deterministic UPDATE that could apply a tiny
+        -- weight-based factor (e.g. 0.001) to PK/LB items -> near-zero results.
         UPDATE t
         SET [Convertion Factor] = ISNULL(cd1.U_CONFACTR, 1)
         FROM #BomResult t
         INNER JOIN
         (
-            SELECT DISTINCT cd.U_CONFACTR, ch.U_ITNO
+            SELECT ch.U_ITNO, MAX(ISNULL(cd.U_CONFACTR, 1)) AS U_CONFACTR
             FROM [@C_ITMSTR] ch
             INNER JOIN [@C_ITMUOM] cd ON cd.DocEntry = ch.DocEntry
             WHERE cd.U_TOUOM <> ''
+            GROUP BY ch.U_ITNO
         ) cd1 ON t.[Finish Good] = cd1.U_ITNO;
 
-        -- Step 2: Default conversion factor to 1 where still 0
+        -- Step 2: Safety net — if CF is still 0 after Step 1, reset to 1.
         UPDATE t
         SET [Convertion Factor] = 1
         FROM #BomResult t
         WHERE [Convertion Factor] = 0.00;
 
-        -- Step 3: Recalculate Item Projection applying the FG-level conversion factor.
-        -- The factor is applied uniformly to all rows in the explosion tree for that FG
-        -- (regardless of level), since every qty_per_fg was computed from the same FG_Qty seed.
-        -- For BOM Items with UOM='NO': apply the factor (pieces need unit conversion).
-        -- For Formula Items: always apply the factor.
-        -- For BOM Items with other UOMs: no factor (weight/volume units don't need it).
+        -- Step 3: Apply CF only to Formula Items.
+        --   BOM Items (PK, LB, intermediate components): U_QTY in [@C_BOMD] is
+        --   already defined per-FG-output-unit, so NO additional factor is needed.
+        --   Applying CF to them was causing PK/LB to show ~0 when the FG had a
+        --   weight-based UOM entry (e.g. U_CONFACTR=0.001 for G->KG).
+        --
+        --   Formula Items: ingredients are defined per-batch-weight; CF scales
+        --   them to per-FG-output-unit correctly.
         UPDATE t
         SET [Item Projection] =
             CASE
-                WHEN [Item_Type] = 'BOM Item'
-                THEN (
-                    CASE WHEN [Inventory_UOM] = 'NO'
-                         THEN [Item Projection] * [Convertion Factor]
-                         ELSE [Item Projection]
-                    END
-                )
-                ELSE [Item Projection] * [Convertion Factor]
+                WHEN [Item_Type] = 'Formula Item'
+                THEN [Item Projection] * [Convertion Factor]
+                ELSE [Item Projection]  -- BOM Items: keep qty as-is
             END
         FROM #BomResult t;
 
