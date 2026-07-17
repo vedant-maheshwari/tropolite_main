@@ -105,12 +105,38 @@ def fg_conditions(fg_list : list, fg_qty : list):
     #     return False
     return True
 
+def read_fg_excel(filepath):
+    if filepath.lower().endswith('.csv'):
+        df = pd.read_csv(filepath)
+    else:
+        try:
+            df = pd.read_excel(filepath, engine='openpyxl', skiprows=1)
+            cols = [str(c).strip() for c in df.columns]
+            if 'FG_CODE' not in cols or 'QTY' not in cols:
+                df0 = pd.read_excel(filepath, engine='openpyxl', skiprows=0)
+                cols0 = [str(c).strip() for c in df0.columns]
+                if 'FG_CODE' in cols0 and 'QTY' in cols0:
+                    df = df0
+        except Exception:
+            try:
+                df = pd.read_excel(filepath, skiprows=1)
+                cols = [str(c).strip() for c in df.columns]
+                if 'FG_CODE' not in cols or 'QTY' not in cols:
+                    df0 = pd.read_excel(filepath, skiprows=0)
+                    cols0 = [str(c).strip() for c in df0.columns]
+                    if 'FG_CODE' in cols0 and 'QTY' in cols0:
+                        df = df0
+            except Exception:
+                df = pd.read_excel(filepath, engine='openpyxl', skiprows=0)
+    return df
+
 def check_file_structure_and_conditions(filepath):
-    df = pd.read_excel(filepath, engine='openpyxl', skiprows=1)
-    column_list = df.columns
+    df = read_fg_excel(filepath)
+    column_list = [str(c).strip() for c in df.columns]
     print(column_list)
-    if not (len(column_list) == 2 and 'FG_CODE' in column_list and 'QTY' in column_list):
-        return {'status' : 'error', 'details' : 'File structure not correct'}
+    if 'FG_CODE' not in column_list or 'QTY' not in column_list:
+        return {'status' : 'error', 'details' : 'File structure not correct (missing FG_CODE and QTY headers)'}
+    df.columns = column_list
     if not fg_conditions(df['FG_CODE'], df['QTY']):
         return {'status' : 'error', 'details' : 'not adhering to FG conditions'}
     return {'status' : 'True', 'details' : 'everything is alright'}
@@ -490,6 +516,8 @@ def run_query(json_payload: str, db: Session):
 
         -- ================================================================
         -- Final SELECT
+        -- Items with Item Projection = 0 are excluded (BOM U_QTY is 0 in
+        -- SAP for those items — showing them as 0 in the portal is misleading).
         -- ================================================================
         SELECT
         [Item Group],
@@ -501,7 +529,9 @@ def run_query(json_payload: str, db: Session):
         [Item Projection],
         [Inventory_UOM]
         FROM #BomResult
+        WHERE [Item Projection] > 0
         ORDER BY [Finish Good], [Level], [Item Code];
+
 
         IF OBJECT_ID('tempdb..#BomResult') IS NOT NULL DROP TABLE #BomResult;
     """
@@ -769,7 +799,8 @@ def extract_px_items(results: list[dict]) -> list[dict]:
 
 
 def process_file(filepath):
-    df = pd.read_excel(filepath, engine='openpyxl', skiprows=1)
+    df = read_fg_excel(filepath)
+    df.columns = [str(c).strip() for c in df.columns]
     # Drop rows where FG_CODE or QTY is blank/NaN (e.g. trailing empty rows in Excel)
     df = df.dropna(subset=['FG_CODE', 'QTY'])
     # Also drop rows where FG_CODE is an empty string after stripping
@@ -893,11 +924,15 @@ def convert_px_to_md(px_codes : list[dict], conversion_dict):
         # print(px_code)
         # final_list.extend(conversion_dict[px_code.get('Item_Code')])
         px_codes_lower = px_code.get('Item_Code')
-        px_codes_lower = px_codes_lower.lower()
+        px_codes_lower = px_codes_lower.lower() if px_codes_lower else ''
         print(f'px code to match : {px_codes_lower}')
-        for item in conversion_dict[px_codes_lower]:
-            final_list.append({'MD_code' : item.get('MD_code'),
-            'Qty' : (float(item.get('percentage')) / 100) * float(px_code.get('Total_Qty'))})
+        if px_codes_lower in conversion_dict and conversion_dict[px_codes_lower]:
+            for item in conversion_dict[px_codes_lower]:
+                final_list.append({'MD_code' : item.get('MD_code'),
+                'Qty' : (float(item.get('percentage') or 0) / 100) * float(px_code.get('Total_Qty') or 0)})
+        else:
+            final_list.append({'MD_code' : px_code.get('Item_Code'),
+            'Qty' : float(px_code.get('Total_Qty') or 0)})
     # print(final_list)
 
     return final_list
@@ -1146,3 +1181,152 @@ def run_rf_explosion(rf_items: list[dict], db: Session) -> list[dict]:
 def cleanup_firebase():
     ref = db.reference('vault_system')
     ref.delete()
+
+
+def get_px_formula_costs(db: Session) -> dict:
+    """
+    Returns the PX → MD formula breakdown needed for per-FG cost pricing.
+
+    For each active PX code that has a formula in the MD database, returns:
+      {
+        "PX0001": [
+          { "md_code": "MD001", "formula_qty": 0.45, "formula_pct": 45.0 },
+          ...
+        ],
+        ...
+      }
+
+    formula_qty is the raw ingredient qty per batch.
+    formula_pct is the percentage contribution of each MD ingredient (sums to 100 per PX code).
+    The caller should weight by formula_pct to compute the PX item's cost from constituent MD costs.
+    """
+    query = text("""
+    ;WITH FormulaExplosion AS (
+        SELECT
+            BH.U_ITNO       AS PX_Code,
+            F1.U_ITEMCODE   AS MD_Code,
+            CAST(F1.U_QTY AS FLOAT)  AS Formula_Qty,
+            1               AS Level
+        FROM [@C_BOMH] BH
+        INNER JOIN [@OFES] FH ON BH.U_FORMULA = FH.U_FCODE
+        INNER JOIN [@FES1] F1 ON FH.DocEntry = F1.DocEntry
+        WHERE BH.U_STATUS = 'Active'
+          AND FH.U_STATUS = 'Active'
+          AND BH.U_ITNO LIKE 'PX%'
+    )
+    SELECT
+        PX_Code,
+        MD_Code,
+        Formula_Qty,
+        ROUND(
+            Formula_Qty * 100.0 / NULLIF(SUM(Formula_Qty) OVER (PARTITION BY PX_Code), 0),
+            6
+        ) AS Formula_Percent
+    FROM FormulaExplosion
+    ORDER BY PX_Code, MD_Code
+    OPTION (MAXRECURSION 1000);
+    """)
+
+    results = db.execute(query)
+    records = results.mappings().all()
+
+    px_formula_dict: dict = {}
+    for row in records:
+        px = str(row['PX_Code'])
+        if px not in px_formula_dict:
+            px_formula_dict[px] = []
+        px_formula_dict[px].append({
+            'md_code': str(row['MD_Code']),
+            'formula_qty': float(row['Formula_Qty']),
+            'formula_pct': float(row['Formula_Percent']) if row['Formula_Percent'] is not None else 0.0
+        })
+
+    return px_formula_dict
+
+
+def diagnose_bom_zeros(fg_codes: list[str], db: Session) -> dict:
+    """
+    Diagnostic: for each FG code, check why PK/LB items might show 0
+    in the perFG BOM table.
+
+    Returns three sections:
+      - bom_headers   : BOM header row + status for each FG
+      - bom_detail_pk_lb : U_QTY of every PK/LB child in [@C_BOMD]
+                           (0 here = root cause of 0 in BOM projection)
+      - formula_check : active formula, U_TLT (total weight), and
+                        all ingredients (U_TLT=0 causes NULL projection)
+    """
+    if not fg_codes:
+        return {"bom_headers": [], "bom_detail_pk_lb": [], "formula_check": []}
+
+    # Build safe IN list  e.g.  N'FB0001', N'FB0002'
+    in_list = ", ".join(f"N'{c.replace(chr(39), chr(39)*2)}'" for c in fg_codes)
+
+    raw_conn = db.connection().connection
+    cursor = raw_conn.cursor()
+
+    # ── CHECK 1: BOM header status ───────────────────────────────────────
+    sql_headers = f"""
+        SELECT
+            h.U_ITNO    AS FG_Code,
+            h.U_STATUS  AS BOM_Status,
+            h.U_FORMULA AS Formula_Code
+        FROM [@C_BOMH] h
+        WHERE h.U_ITNO IN ({in_list})
+        ORDER BY h.U_ITNO;
+    """
+
+    cursor.execute(sql_headers)
+    cols = [c[0] for c in cursor.description]
+    bom_headers = [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+    # ── CHECK 2: BOM detail U_QTY for PK / LB items ─────────────────────
+    sql_detail = f"""
+        SELECT
+            h.U_ITNO   AS FG_Code,
+            d.U_ITNO   AS Item_Code,
+            d.U_QTY    AS BOM_Qty,
+            d.U_UOM    AS UOM
+        FROM [@C_BOMH] h
+        INNER JOIN [@C_BOMD] d ON d.DocEntry = h.DocEntry
+        WHERE h.U_ITNO IN ({in_list})
+          AND (d.U_ITNO LIKE 'PK%' OR d.U_ITNO LIKE 'LB%')
+          AND h.U_STATUS = 'Active'
+        ORDER BY h.U_ITNO, d.U_ITNO;
+    """
+
+    cursor.execute(sql_detail)
+    cols = [c[0] for c in cursor.description]
+    bom_detail = [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+    # ── CHECK 3: Formula status and total weight ──────────────────────────
+    sql_formula = f"""
+        SELECT
+            h.U_ITNO       AS FG_Code,
+            fh.U_FCODE     AS Formula_Code,
+            fh.U_STATUS    AS Formula_Status,
+            fh.U_TLT       AS Formula_Total_Weight,
+            f1.U_ITEMCODE  AS Ingredient_Code,
+            f1.U_QTY       AS Ingredient_Qty,
+            f1.U_UOM       AS Ingredient_UOM
+        FROM [@C_BOMH] h
+        INNER JOIN [@OFES] fh
+            ON fh.U_FCODE = h.U_FORMULA
+        INNER JOIN [@FES1] f1
+            ON f1.DocEntry = fh.DocEntry
+        WHERE h.U_ITNO IN ({in_list})
+          AND h.U_STATUS = 'Active'
+        ORDER BY h.U_ITNO, fh.U_FCODE, f1.U_ITEMCODE;
+    """
+
+    cursor.execute(sql_formula)
+    cols = [c[0] for c in cursor.description]
+    formula_check = [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+    cursor.close()
+
+    return {
+        "bom_headers": bom_headers,
+        "bom_detail_pk_lb": bom_detail,
+        "formula_check": formula_check,
+    }

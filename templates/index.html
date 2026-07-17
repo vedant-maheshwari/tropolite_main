@@ -979,6 +979,50 @@
             color: var(--text);
         }
 
+        td.wavg-col {
+            text-align: right;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--crimson);
+        }
+
+        .case-badge {
+            display: inline-flex;
+            padding: 0.08rem 0.35rem;
+            border-radius: 3px;
+            font-family: var(--mono);
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+
+        .case-1 {
+            background: var(--green-light);
+            color: var(--green);
+        }
+
+        .case-2 {
+            background: var(--amber-light);
+            color: var(--amber);
+        }
+
+        .case-3 {
+            background: var(--crimson-light);
+            color: var(--crimson);
+        }
+
+        .case-4 {
+            background: rgba(200, 169, 110, 0.15);
+            color: #7a5c10;
+        }
+
+        .case-5 {
+            background: var(--surface2);
+            color: var(--text-muted);
+        }
+
         .stock-loading-badge {
             display: inline-flex;
             align-items: center;
@@ -988,6 +1032,153 @@
             color: var(--text-dim);
             padding: 0.2rem 0.5rem;
             border-radius: 4px;
+            background: var(--surface2);
+        }
+
+        /* ── FORMULA LEGEND ───────────────────────────────── */
+        .formula-legend {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .formula-legend-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.65rem 1rem;
+            cursor: pointer;
+            user-select: none;
+            background: var(--surface2);
+            border-bottom: 1px solid transparent;
+            transition: background 0.15s;
+        }
+
+        .formula-legend-toggle:hover {
+            background: var(--crimson-light);
+        }
+
+        .formula-legend-toggle.open {
+            border-bottom-color: var(--border);
+        }
+
+        .formula-legend-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: var(--mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .formula-legend-chevron {
+            width: 14px;
+            height: 14px;
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+
+        .formula-legend-toggle.open .formula-legend-chevron {
+            transform: rotate(180deg);
+        }
+
+        .formula-legend-body {
+            display: none;
+            padding: 1rem 1.25rem;
+            font-size: 0.8rem;
+            line-height: 1.75;
+        }
+
+        .formula-legend-body.open {
+            display: block;
+        }
+
+        .formula-legend-body h4 {
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.5rem;
+            margin-top: 0.85rem;
+        }
+
+        .formula-legend-body h4:first-child {
+            margin-top: 0;
+        }
+
+        .formula-legend-body .fml {
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            background: var(--surface2);
+            border-left: 3px solid var(--crimson);
+            padding: 0.4rem 0.75rem;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            margin-bottom: 0.3rem;
+            color: var(--text);
+        }
+
+        .formula-legend-body .fml-note {
+            font-size: 0.73rem;
+            color: var(--text-muted);
+            padding-left: 0.75rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .legend-case-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            margin-bottom: 0.3rem;
+            font-size: 0.78rem;
+            color: var(--text);
+        }
+
+        /* ── PER-FG COST TAB ──────────────────────────────── */
+        .fg-cost-upload-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+
+        .fg-cost-upload-bar label {
+            font-size: 0.73rem;
+            font-family: var(--mono);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        #fgCostStatus {
+            font-size: 0.75rem;
+            font-family: var(--mono);
+            color: var(--text-muted);
+        }
+
+        .fg-cost-table-wrap {
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            max-height: calc(100vh - 360px);
+        }
+
+        .per-fg-breakdown-row {
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            color: var(--text-muted);
             background: var(--surface2);
         }
 
@@ -1024,11 +1215,18 @@
             <span class="topbar-module">Procurement Portal</span>
         </div>
         <div class="topbar-actions">
-            <button id="navNewUpload" class="btn btn-ghost btn-sm" style="display:none" , onclick="goToUpload()">
+            <button id="navNewUpload" class="btn btn-ghost btn-sm" style="display:none" onclick="goToUpload()">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
                 New Upload
+            </button>
+            <button id="navFgCost" class="btn btn-ghost btn-sm" style="display:none" onclick="goToFgCost()">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 13h.01M13 13h.01M13 17h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                </svg>
+                Per-FG Cost
             </button>
             <button id="navSignOut" class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button>
         </div>
@@ -1194,12 +1392,12 @@
                     </svg>
                     Download CSV
                 </button>
-                <!-- <button class="btn btn-ghost btn-sm" id="newUploadResultsBtn">
+                <button class="btn btn-ghost btn-sm" id="newUploadResultsBtn" onclick="goToUpload()">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
                     New Upload
-                </button> -->
+                </button>
             </div>
         </div>
 
@@ -1225,7 +1423,7 @@
 
         <!-- Tabs -->
         <div class="tab-bar">
-            <div class="tab active" onclick="switchTab(this, 'finalTable')">Final Order List</div>
+            <div class="tab active" id="finalTabBtn" onclick="switchTab(this, 'finalTable')">Final Order List</div>
             <div class="tab" id="bomTabBtn" onclick="switchTab(this, 'bomTable')" style="display:none">Per-FG BOM Table
             </div>
         </div>
@@ -1245,6 +1443,61 @@
                     <tbody id="finalTableBody"></tbody>
                 </table>
             </div>
+            <!-- Formula Legend: Procurement Pricing -->
+            <div class="formula-legend" id="procurementLegend" style="display:none">
+                <div class="formula-legend-toggle" onclick="toggleLegend('procurementLegendBody', this)">
+                    <span class="formula-legend-title">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Pricing Formula Legend &amp; Notation
+                    </span>
+                    <svg class="formula-legend-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+                <div class="formula-legend-body" id="procurementLegendBody">
+                    <h4>Variables</h4>
+                    <div class="fml">Proc&nbsp;= Procurement Qty (Required Qty from BOM explosion)</div>
+                    <div class="fml">Avail = Available Stock (closing stock from SAP warehouses)</div>
+                    <div class="fml">LPP&nbsp;&nbsp;= Last Purchase Price (SAP OITM.LastPurPrc)</div>
+                    <div class="fml">NPP&nbsp;&nbsp;= New Purchase Price (from admin monthly price upload)</div>
+                    <div class="fml">Net&nbsp;&nbsp;= Net Required = MAX(0, Proc − Avail)</div>
+
+                    <h4>Column Formulas</h4>
+                    <div class="fml">Old Stock Price Total&nbsp;&nbsp;&nbsp;= MIN(Avail, Proc) × LPP</div>
+                    <div class="fml">New Purchase Price Total = Net × NPP</div>
+                    <div class="fml">Weighted Avg Price&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (Old Stock Price Total + New
+                        Purchase Price Total) ÷ Proc</div>
+
+                    <h4>Case Rules for Weighted Avg Price</h4>
+                    <div class="legend-case-row"><span class="case-badge case-1">CASE 1</span> <span>Avail ≥ Proc →
+                            <b>Weighted Avg = LPP</b> (stock covers full requirement; no new purchase needed)</span>
+                    </div>
+                    <div class="legend-case-row"><span class="case-badge case-2">CASE 2</span> <span>Avail = 0 and NPP
+                            &gt; 0 → <b>Weighted Avg = NPP</b> (zero stock, must buy everything at new price)</span>
+                    </div>
+                    <div class="legend-case-row"><span class="case-badge case-3">CASE 3</span> <span>Avail = 0 and NPP =
+                            0/missing → <b>Weighted Avg = LPP</b> (zero stock, no new price available; fallback to last
+                            known price)</span></div>
+                    <div class="legend-case-row"><span class="case-badge case-4">CASE 4</span> <span>0 &lt; Avail &lt;
+                            Proc and NPP &gt; 0 → <b>Weighted Avg = (Avail×LPP + Net×NPP) ÷ Proc</b> (blended: partial
+                            stock at old price, remainder at new price)</span></div>
+                    <div class="legend-case-row"><span class="case-badge case-5">CASE 5</span> <span>0 &lt; Avail &lt;
+                            Proc and NPP = 0/missing → <b>Weighted Avg = LPP</b> (partial stock, no new price; fallback
+                            to LPP)</span></div>
+
+                    <h4>Notes</h4>
+                    <div class="fml-note">• LPP comes from SAP's OITM.LastPurPrc field (last recorded purchase price).
+                    </div>
+                    <div class="fml-note">• NPP is loaded from the admin monthly price Excel (ItemCode → Price sheet).
+                    </div>
+                    <div class="fml-note">• Total Price column = Old Stock Price Total + New Purchase Price Total.</div>
+                    <div class="fml-note">• Weighted Avg is used downstream in the Per-FG Cost tab for non-PX items.
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Per-FG BOM table (dev mode) -->
@@ -1260,10 +1513,191 @@
             </div>
             <div id="bomTablesContainer"></div>
         </div>
-    </div>
+
+        <!-- Per-FG BOM table ends above -->
+    </div><!-- end #resultsView -->
+
+    <!-- ══════════════════════ PER-FG COST VIEW ══════════════════════ -->
+    <div id="fgCostView" class="view" style="flex-direction:column;padding:2rem;gap:1.25rem;">
+
+        <div class="results-header">
+            <div class="results-header-left">
+                <h2>Per-FG Cost Calculator</h2>
+                <p id="fgCostViewSubtitle">Upload the FG projection Excel + PX price Excel, then calculate</p>
+            </div>
+            <div class="results-actions">
+                <button class="btn btn-ghost btn-sm" onclick="goToUpload()">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    Go Home
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="downloadFgCostCSV()">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload bar -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+
+            <!-- FG Projection Excel -->
+            <div
+                style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;">
+                <div
+                    style="font-size:0.7rem;font-family:var(--mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.6rem;">
+                    Step 1 &mdash; FG Projection Excel
+                </div>
+                <input type="file" id="fgCostFileInput" accept=".xlsx,.xls,.csv"
+                    style="position:absolute;opacity:0;width:1px;height:1px;overflow:hidden;"
+                    onchange="onFgCostFileChange(event)">
+                <div class="dropzone" id="fgCostDropzone" style="padding:1.5rem 1rem;cursor:pointer;"
+                    onclick="document.getElementById('fgCostFileInput').click()">
+                    <div id="fgCostDropContent" style="text-align:center;">
+                        <svg class="dropzone-icon" style="width:1.8rem;height:1.8rem;" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p class="dropzone-text" style="font-size:0.82rem;"><strong>Click</strong> to browse</p>
+                        <p class="dropzone-hint">FG_CODE + QTY &mdash; same format as main upload</p>
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:0.5rem;width:100%;"
+                    onclick="document.getElementById('fgCostFileInput').click()">
+                    Browse FG Projection File
+                </button>
+                <div id="fgCostFileStatus"
+                    style="font-size:0.72rem;font-family:var(--mono);color:var(--text-muted);margin-top:0.4rem;"></div>
+            </div>
+
+            <!-- PX Price Excel -->
+            <div
+                style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;">
+                <div
+                    style="font-size:0.7rem;font-family:var(--mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.6rem;">
+                    Step 2 &mdash; PX Price Excel <span style="color:var(--text-dim)">(optional but recommended)</span>
+                </div>
+                <input type="file" id="pxPriceFileInputSA" accept=".xlsx,.xls"
+                    style="position:absolute;opacity:0;width:1px;height:1px;overflow:hidden;"
+                    onchange="onPxPriceFileSAChange(event)">
+                <div class="dropzone" id="pxPriceDropzone" style="padding:1.5rem 1rem;cursor:pointer;"
+                    onclick="document.getElementById('pxPriceFileInputSA').click()">
+                    <div id="pxPriceDropContent" style="text-align:center;">
+                        <svg class="dropzone-icon" style="width:1.8rem;height:1.8rem;" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 13h.01M13 13h.01M13 17h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                        </svg>
+                        <p class="dropzone-text" style="font-size:0.82rem;"><strong>Click</strong> to browse</p>
+                        <p class="dropzone-hint">Columns: ItemCode + Price</p>
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-sm" style="margin-top:0.5rem;width:100%;"
+                    onclick="document.getElementById('pxPriceFileInputSA').click()">
+                    Browse PX Price File
+                </button>
+                <div id="pxPriceFileStatus"
+                    style="font-size:0.72rem;font-family:var(--mono);color:var(--text-muted);margin-top:0.4rem;"></div>
+            </div>
+        </div>
+
+        <!-- Calculate button + status -->
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="calcFgCostSABtn" style="width:auto;min-width:200px;"
+                onclick="runFgCostStandalone()">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 13h.01M13 13h.01M13 17h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                </svg>
+                Calculate Per-FG Cost
+            </button>
+            <div class="spinner-wrap" id="fgCostSASpinner">
+                <div class="spinner-row">
+                    <div class="spinner"></div>
+                    <span class="spinner-text" id="fgCostSASpinnerText">Running…</span>
+                </div>
+            </div>
+            <span id="fgCostSAStatus" style="font-size:0.78rem;font-family:var(--mono);color:var(--text-muted);">Upload
+                both files then click Calculate</span>
+        </div>
+
+        <!-- Output table -->
+        <div class="fg-cost-table-wrap" id="fgCostSATableWrap" style="display:none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>FG Code</th>
+                        <th>FG Name</th>
+                        <th style="text-align:right">Projected Qty</th>
+                        <th style="text-align:right">Total Material Cost</th>
+                        <th style="text-align:right">Per Unit Cost (₹)</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="fgCostSATableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Per-FG Formula Legend -->
+        <div class="formula-legend">
+            <div class="formula-legend-toggle" onclick="toggleLegend('fgCostLegendBody', this)">
+                <span class="formula-legend-title">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Per-FG Cost Methodology &amp; Formulas
+                </span>
+                <svg class="formula-legend-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+            <div class="formula-legend-body" id="fgCostLegendBody">
+                <h4>Inputs</h4>
+                <div class="fml">WAP(code) = Weighted Avg Price per unit of any non-PX item (5-case formula from closing
+                    stock + new prices)</div>
+                <div class="fml">PXPrice(px) = Provided via PX Price Excel upload (ItemCode → Price)</div>
+                <div class="fml">BOM(fg) = All ingredient rows for that FG from the BOM explosion (run via
+                    /get_bom_only)</div>
+                <div class="fml">FG_Qty = Projected production quantity for the FG (from Step 1 Excel)</div>
+
+                <h4>WAP — 5 Case Rules (non-PX items)</h4>
+                <div class="legend-case-row"><span class="case-badge case-1">C1</span><span>Avail ≥ Proc → WAP = Last
+                        Purchase Price</span></div>
+                <div class="legend-case-row"><span class="case-badge case-2">C2</span><span>Avail = 0, New Price exists
+                        → WAP = New Purchase Price</span></div>
+                <div class="legend-case-row"><span class="case-badge case-3">C3</span><span>Avail = 0, no New Price →
+                        WAP = Last Purchase Price (fallback)</span></div>
+                <div class="legend-case-row"><span class="case-badge case-4">C4</span><span>Partial stock, New Price
+                        exists → WAP = (Avail×LPP + Net×NPP) ÷ Proc</span></div>
+                <div class="legend-case-row"><span class="case-badge case-5">C5</span><span>Partial stock, no New Price
+                        → WAP = Last Purchase Price (fallback)</span></div>
+
+                <h4>PX Items</h4>
+                <div class="fml">PXCost(px, fg) = PXPrice(px) × Item_Projection(px, fg)</div>
+                <div class="fml-note">• If a PX code has no price in the uploaded Excel it is included with ₹0 value.
+                </div>
+                <div class="fml-note">• The MD formula breakdown (from /px_formula_costs) is fetched for reference only.
+                </div>
+
+                <h4>Per-FG Aggregation</h4>
+                <div class="fml">TotalFGValue(fg) = Σ [ WAP(item) × Item_Projection(item) ] for all items in BOM</div>
+                <div class="fml">PerUnitCost(fg) = TotalFGValue(fg) ÷ FG_Qty</div>
+                <div class="fml-note">• Item_Projection already incorporates FG_Qty (it is scaled at BOM explosion
+                    time).</div>
+                <div class="fml-note">• So the division by FG_Qty normalises to a true per-unit figure.</div>
+            </div>
+        </div>
+    </div><!-- end #fgCostView -->
 
     <!-- TOAST -->
     <div id="toast"></div>
+
 
     <!-- Serve logo as static file via FastAPI -->
     <script>
@@ -1283,6 +1717,8 @@
         let closingStock = {};   // { ItemCode: { qty, last_pur_prc } }
         let newPrices = {};      // { ItemCode: price }  — from monthly admin upload
         let currentMetadataId = null;  // set after /upload_excel, used to save final Excel
+        let fgQtyMap = {};       // { FG_Code: projectedQty }  — populated during buildFinalResults
+        let uploadedFGItems = {}; // { FG_Code: QTY }  — parsed from the projection Excel at upload time
 
         // ── TOAST ─────────────────────────────────────────────────
         function showToast(msg, type = '') {
@@ -1298,21 +1734,33 @@
         const uploadView = document.getElementById('uploadView');
         const waitingView = document.getElementById('waitingView');
         const resultsView = document.getElementById('resultsView');
+        const fgCostView = document.getElementById('fgCostView');
         const topbar = document.getElementById('topbar');
         const navNewUpload = document.getElementById('navNewUpload');
+        const navFgCost = document.getElementById('navFgCost');
 
         function showView(view) {
-            [loginView, uploadView, waitingView, resultsView].forEach(v => v.classList.remove('active'));
+            [loginView, uploadView, waitingView, resultsView, fgCostView].forEach(v => v.classList.remove('active'));
             view.classList.add('active');
             if (view === loginView) {
                 topbar.classList.remove('visible');
                 navNewUpload.style.display = 'none';
+                navFgCost.style.display = 'none';
             } else {
                 topbar.classList.add('visible');
+                // New Upload button: show in results + waiting + fgCostView views
                 navNewUpload.style.display =
-                    (view === resultsView || view === waitingView) ? 'inline-flex' : 'none';
+                    (view === resultsView || view === waitingView || view === fgCostView) ? 'inline-flex' : 'none';
+                // Per-FG Cost button: show in upload + results + waiting — hide only on fgCostView itself
+                navFgCost.style.display =
+                    (view === fgCostView) ? 'none' : 'inline-flex';
             }
         }
+
+        function goToFgCost() {
+            showView(fgCostView);
+        }
+
 
         // ── WORKFLOW STEP ──────────────────────────────────────────
         function setStep(n) {
@@ -1340,7 +1788,11 @@
         // ── DEV MODE ──────────────────────────────────────────────
         document.getElementById('devModeToggle').addEventListener('change', e => {
             devMode = e.target.checked;
-            document.getElementById('bomTabBtn').style.display = devMode ? '' : 'none';
+            const bomTabBtnEl = document.getElementById('bomTabBtn');
+            if (bomTabBtnEl) bomTabBtnEl.style.display = devMode ? '' : 'none';
+            if (devMode && bomData && bomData.length > 0) {
+                renderBomTables(bomData);
+            }
         });
 
         // ── DROPZONE ──────────────────────────────────────────────
@@ -1366,12 +1818,14 @@
             dropzoneCont.innerHTML = defaultDropzoneHTML;
             processBtn.disabled = true;
             const _bomOnlyBtn = document.getElementById('bomOnlyBtn');
-            if (_bomOnlyBtn) { _bomOnlyBtn.disabled = true; _bomOnlyBtn.innerHTML = `
+            if (_bomOnlyBtn) {
+                _bomOnlyBtn.disabled = true; _bomOnlyBtn.innerHTML = `
         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
         </svg>
-        BOM Only`; }
+        BOM Only`;
+            }
             processBtn.innerHTML = `
         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1386,7 +1840,7 @@
         dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
         dropzone.addEventListener('drop', () => dropzone.classList.remove('drag-over'));
 
-        fileInput.addEventListener('change', e => {
+        fileInput.addEventListener('change', async e => {
             const file = e.target.files[0];
             if (!file) { resetUpload(); return; }
             currentFile = file;
@@ -1402,6 +1856,31 @@
     `;
             processBtn.disabled = false;
             document.getElementById('bomOnlyBtn').disabled = false;
+
+            // Parse FG items from the Excel for the Per-FG cost denominator
+            uploadedFGItems = {};
+            try {
+                if (!window.XLSX) {
+                    await new Promise((resolve, reject) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+                        s.onload = resolve; s.onerror = reject;
+                        document.head.appendChild(s);
+                    });
+                }
+                const buf = await file.arrayBuffer();
+                const wb = XLSX.read(buf, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                // skiprows=1 — read from row 2 (header on row 2, row 1 is blank)
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '', range: 1 });
+                for (const row of rows) {
+                    const code = String(row['FG_CODE'] || row['FG CODE'] || '').trim();
+                    const qty = parseFloat(row['QTY'] || row['Qty'] || 0);
+                    if (code && !isNaN(qty)) uploadedFGItems[code] = qty;
+                }
+            } catch (e) {
+                console.warn('Could not pre-parse FG items from file:', e);
+            }
         });
 
         // ── LOGIN ─────────────────────────────────────────────────
@@ -1676,10 +2155,28 @@
         }
 
         // ── STOCK VIEW TOGGLE ──────────────────────────────────────
-        function toggleStockView() {
+        async function toggleStockView() {
             stockViewMode = !stockViewMode;
-            document.getElementById('stockToggleWrap').classList.toggle('active', stockViewMode);
+            const toggleWrap = document.getElementById('stockToggleWrap');
+            if (toggleWrap) toggleWrap.classList.toggle('active', stockViewMode);
             renderFinalTable();
+
+            if (stockViewMode) {
+                // Fetch fresh closing stock and new prices whenever Stock View is toggled on
+                if (Object.keys(closingStock).length === 0 || Object.keys(newPrices).length === 0) {
+                    showToast('Fetching stock & pricing from API…', 'info');
+                    await Promise.all([fetchClosingStock(), fetchNewPrices()]);
+                    if (stockViewMode) {
+                        renderFinalTable();
+                        showToast('Stock view updated with latest API data.', 'success');
+                    }
+                } else {
+                    // Refresh in background to ensure latest quantities from database
+                    Promise.all([fetchClosingStock(), fetchNewPrices()]).then(() => {
+                        if (stockViewMode) renderFinalTable();
+                    });
+                }
+            }
         }
 
         // ── FETCH CLOSING STOCK ────────────────────────────────────
@@ -1690,14 +2187,22 @@
                 const res = await fetch(`${API_BASE}/closing_stock`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                if (res.status === 401) {
+                    localStorage.removeItem('access_token');
+                    showToast('Session expired. Please sign in again.', 'error');
+                    showView(loginView);
+                    return;
+                }
                 if (res.ok) {
                     closingStock = await res.json();
                 } else {
                     console.warn('Could not fetch closing stock:', res.status);
+                    showToast(`Could not fetch closing stock (${res.status})`, 'error');
                     closingStock = {};
                 }
             } catch (e) {
                 console.warn('Closing stock fetch failed:', e);
+                showToast(`Closing stock fetch failed: ${e.message}`, 'error');
                 closingStock = {};
             }
         }
@@ -1710,6 +2215,10 @@
                 const res = await fetch(`${API_BASE}/new_prices`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+                if (res.status === 401) {
+                    localStorage.removeItem('access_token');
+                    return;
+                }
                 if (res.ok) {
                     newPrices = await res.json();
                 } else {
@@ -1728,6 +2237,49 @@
             return 'badge-rm';   // PM, R&D, and anything else → crimson
         }
 
+        // ── WEIGHTED AVG PRICE HELPER ──────────────────────────────
+        // Returns { oldTotal, newTotal, totalPrice, wavg, caseNum } for a row
+        function computeWeightedAvg(procQty, avail, lastPurPrc, newPrc) {
+            const net = Math.max(0, procQty - avail);
+            const stockUsed = Math.min(avail, procQty);
+
+            let oldTotal, newTotal, wavg, caseNum;
+
+            if (avail >= procQty) {
+                // CASE 1: stock fully covers requirement
+                oldTotal = stockUsed * lastPurPrc;
+                newTotal = 0;
+                wavg = lastPurPrc;
+                caseNum = 1;
+            } else if (avail === 0 && newPrc > 0) {
+                // CASE 2: zero stock, new price available
+                oldTotal = 0;
+                newTotal = procQty * newPrc;
+                wavg = newPrc;
+                caseNum = 2;
+            } else if (avail === 0 && newPrc === 0) {
+                // CASE 3: zero stock, no new price → fallback to LPP
+                oldTotal = 0;
+                newTotal = 0;
+                wavg = lastPurPrc;
+                caseNum = 3;
+            } else if (avail > 0 && avail < procQty && newPrc > 0) {
+                // CASE 4: partial stock, new price available → blended
+                oldTotal = stockUsed * lastPurPrc;
+                newTotal = net * newPrc;
+                wavg = procQty > 0 ? (oldTotal + newTotal) / procQty : 0;
+                caseNum = 4;
+            } else {
+                // CASE 5: partial stock, no new price → fallback to LPP
+                oldTotal = stockUsed * lastPurPrc;
+                newTotal = 0;
+                wavg = lastPurPrc;
+                caseNum = 5;
+            }
+
+            return { oldTotal, newTotal, totalPrice: oldTotal + newTotal, wavg, net, stockUsed, caseNum };
+        }
+
         // ── RENDER FINAL TABLE ─────────────────────────────────────
         function renderFinalTable() {
             const head = document.getElementById('finalTableHead');
@@ -1740,14 +2292,20 @@
                     <th style="text-align:right">Net Required</th>
                     <th style="text-align:right">Last Pur Price</th>
                     <th style="text-align:right">New Price</th>
+                    <th style="text-align:right">Old Stock Price Total</th>
+                    <th style="text-align:right">New Purchase Price Total</th>
                     <th style="text-align:right">Total Price</th>
+                    <th style="text-align:right">Weighted Avg Price</th>
+                    <th style="text-align:right">Case</th>
                     <th>UOM</th>`;
+                document.getElementById('procurementLegend').style.display = '';
             } else {
                 head.innerHTML = `
                     <th>Code</th>
                     <th>Type</th>
                     <th style="text-align:right">Required Qty</th>
                     <th>UOM</th>`;
+                document.getElementById('procurementLegend').style.display = 'none';
             }
 
             document.getElementById('finalTableBody').innerHTML = finalData.map(row => {
@@ -1763,18 +2321,13 @@
                     const stockEntry = closingStock[row.code] || {};
                     const avail = parseFloat(stockEntry.qty ?? 0);
                     const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
-                    const net = row.qty - avail;
-                    const isDeficit = net > 0;
-                    const netQty = isDeficit ? net : 0;
-                    const availUsed = isDeficit ? avail : row.qty;  // how much stock actually covers the requirement
-
-                    // Pricing logic:
-                    //   lastPurPrice covers the qty that IS in stock (up to required)
-                    //   newPrice covers the deficit qty (0 if stock is sufficient)
                     const newPrc = parseFloat(newPrices[row.code] ?? 0);
-                    const lastPurTotal = availUsed * lastPurPrc;
-                    const newPriceTotal = isDeficit ? (netQty * newPrc) : 0;
-                    const totalPrice = lastPurTotal + newPriceTotal;
+
+                    const { oldTotal, newTotal, totalPrice, wavg, net, caseNum } =
+                        computeWeightedAvg(row.qty, avail, lastPurPrc, newPrc);
+
+                    const isDeficit = net > 0;
+                    const netQty = net;
 
                     const availFmt = avail.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
                     const netFmt = netQty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
@@ -1782,7 +2335,7 @@
                         ? `<span style="font-size:0.7rem;margin-right:2px">▲</span>${netFmt}`
                         : `<span style="font-size:0.7rem;margin-right:2px">✓</span>${netFmt}`;
 
-                    const fmtPrice = v => v === 0 ? '—' : v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const fmtPrice = v => (v === 0 || isNaN(v)) ? '—' : v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                     return `<tr class="${isDeficit ? 'row-deficit' : ''}">` +
                         `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
@@ -1791,8 +2344,12 @@
                         `<td class="stock-avail">${availFmt}</td>` +
                         `<td class="stock-net ${isDeficit ? 'deficit' : 'surplus'}">${netDisplay}</td>` +
                         `<td class="price-col">${fmtPrice(lastPurPrc)}</td>` +
-                        `<td class="price-col">${isDeficit && newPrc > 0 ? fmtPrice(newPrc) : '—'}</td>` +
-                        `<td class="price-total">${totalPrice > 0 ? fmtPrice(totalPrice) : '—'}</td>` +
+                        `<td class="price-col">${newPrc > 0 ? fmtPrice(newPrc) : '—'}</td>` +
+                        `<td class="price-col">${fmtPrice(oldTotal)}</td>` +
+                        `<td class="price-col">${fmtPrice(newTotal)}</td>` +
+                        `<td class="price-total">${fmtPrice(totalPrice)}</td>` +
+                        `<td class="wavg-col">${fmtPrice(wavg)}</td>` +
+                        `<td><span class="case-badge case-${caseNum}">C${caseNum}</span></td>` +
                         `<td>${uomTxt}</td>` +
                         `</tr>`;
                 } else {
@@ -1898,9 +2455,45 @@
 
             finalData = Object.values(agg).sort((a, b) => a.code.localeCompare(b.code));
 
+            // Build fgQtyMap from the original BOM data — { FG_Code: projectedQty }
+            // Each BOM row has 'Finish Good' (FG code). The FG_Qty is NOT present in bom rows
+            // (those are item projections). We recover it by scanning the original items array:
+            // items was parsed from the uploaded Excel (FG_Code, QTY). Since we don't store
+            // that separately, we reconstruct from bomData: find all unique 'Finish Good' entries
+            // and store the FG_Qty by looking for a row where Parent_Code === Finish Good (level 1).
+            // Actually the safest approach: look for bom rows where Item Code == Finish Good
+            // (i.e. the FG is a sub-item of itself) — that never happens.
+            // Best heuristic: for each FG, find min common divisor of Item Projections to recover FG_Qty.
+            // Instead, let's store the FG_Qty from the fact that the server returns it in bomData as
+            // a separate approach: look for bom rows where [Finish Good] == [Item Code] — won't exist.
+            // Pragmatic fix: scan for rows where Parent_Code == Finish Good value (direct children of FG)
+            // and note that their Item Projection = per_unit_qty × FG_Qty.
+            // We can't easily reverse without per_unit_qty.
+            // FINAL: grab from the uploaded JSON payload stored before upload — but we don't store that.
+            // Use bomData scan: find max Item Projection per FG as a proxy, or just iterate input items.
+            // Cleanest solution: the uploadedFGItems variable, populated at upload time.
+            fgQtyMap = {};
+            for (const row of bom) {
+                const fg = row['Finish Good'] || '';
+                // FG_Qty is actually available in bomData rows if the server emits it.
+                // Our server returns: Finish Good, Finish Good Name, Parent_Code, Item Code,
+                // Item_Type, Item Projection, Inventory_UOM — no FG_Qty column.
+                // Use uploadedFGItems (set at file upload time) as the source of truth.
+                if (fg && uploadedFGItems[fg] !== undefined && !fgQtyMap[fg]) {
+                    fgQtyMap[fg] = uploadedFGItems[fg];
+                }
+            }
+
             showView(resultsView);
             showToast(`${finalData.length} items ready.`, 'success');
             renderFinalTable();
+            // Always render BOM tables if data is available so the tab is ready whenever Dev Mode is enabled or clicked
+            if (bom && bom.length > 0) {
+                renderBomTables(bom);
+            }
+            const bomTabBtnEl = document.getElementById('bomTabBtn');
+            if (bomTabBtnEl) bomTabBtnEl.style.display = devMode ? '' : 'none';
+
 
             // Fetch closing stock + new prices after showing results (non-blocking)
             await Promise.all([fetchClosingStock(), fetchNewPrices()]);
@@ -1922,25 +2515,24 @@
                 }).catch(e => console.warn('Could not save final procurement Excel:', e));
             }
 
-            // Dev mode BOM tables
-            if (devMode) {
-                document.getElementById('bomTabBtn').style.display = '';
-                renderBomTables(bom);
-            }
+            if (bomTabBtnEl) bomTabBtnEl.style.display = devMode ? '' : 'none';
         }
 
         function renderBomTables(bom) {
+            if (!bom || !bom.length) return;
             const groups = {};
             for (const row of bom) {
-                const fg = row['Finish Good'] || 'Unknown';
+                const fg = row['Finish Good'] || row['FG_CODE'] || row['FG Code'] || row['FinishGood'] || 'Unknown';
                 if (!groups[fg]) groups[fg] = { rows: [] };
                 groups[fg].rows.push(row);
             }
 
             const container = document.getElementById('bomTablesContainer');
+            if (!container) return;
             container.innerHTML = '';
 
             for (const [fg, grp] of Object.entries(groups)) {
+                if (!grp.rows.length) continue;
                 const cols = Object.keys(grp.rows[0]);
                 const div = document.createElement('div');
                 div.className = 'fg-group';
@@ -1954,14 +2546,14 @@
                     <tbody>${grp.rows.map(row =>
                     `<tr>${cols.map(c => {
                         const val = row[c] ?? '';
-                        if (c === 'Item Code') {
+                        if (c === 'Item Code' || c === 'ItemCode' || c === 'Child Code' || c === 'Item_Code') {
                             const code = String(val);
                             const cls = code.startsWith('RM') ? 'badge-rm'
                                 : code.startsWith('PK') ? 'badge-pk'
-                                    : code.startsWith('PX') ? 'badge-px' : '';
+                                    : code.startsWith('LB') || code.startsWith('PX') ? 'badge-px' : 'badge-rm';
                             return `<td><span class="code-badge ${cls}">${escHtml(code)}</span></td>`;
                         }
-                        const isNum = ['qty', 'required', 'level'].some(h => c.toLowerCase().includes(h));
+                        const isNum = ['qty', 'required', 'level', 'projection', 'req'].some(h => c.toLowerCase().includes(h));
                         return `<td${isNum ? ' class="num"' : ''}>${escHtml(String(val))}</td>`;
                     }).join('')}</tr>`
                 ).join('')}</tbody>
@@ -1976,8 +2568,12 @@
         function switchTab(el, id) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.table-section').forEach(s => s.classList.remove('active'));
-            el.classList.add('active');
-            document.getElementById(id).classList.add('active');
+            if (el) el.classList.add('active');
+            const target = document.getElementById(id);
+            if (target) target.classList.add('active');
+            if (id === 'bomTable' && bomData && bomData.length > 0) {
+                renderBomTables(bomData);
+            }
         }
 
         // ── CSV DOWNLOAD ──────────────────────────────────────────
@@ -1985,29 +2581,31 @@
             if (!finalData.length) return;
             let cols, rows;
             if (stockViewMode) {
-                cols = ['Code', 'Type', 'Required Qty', 'Available Stock', 'Net Required', 'Last Pur Price', 'New Price', 'Total Price', 'UOM'];
+                cols = ['Code', 'Type', 'Required Qty', 'Available Stock', 'Net Required',
+                    'Last Pur Price', 'New Price',
+                    'Old Stock Price Total', 'New Purchase Price Total',
+                    'Total Price', 'Weighted Avg Price', 'Case', 'UOM'];
                 rows = finalData.map(r => {
                     const stockEntry = closingStock[r.code] || {};
                     const avail = parseFloat(stockEntry.qty ?? 0);
                     const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
-                    const net = r.qty - avail;
-                    const isDeficit = net > 0;
-                    const netQty = isDeficit ? net : 0;
-                    const availUsed = isDeficit ? avail : r.qty;
                     const newPrc = parseFloat(newPrices[r.code] ?? 0);
-                    const lastPurTotal = availUsed * lastPurPrc;
-                    const newPriceTotal = isDeficit ? (netQty * newPrc) : 0;
-                    const totalPrice = lastPurTotal + newPriceTotal;
+                    const { oldTotal, newTotal, totalPrice, wavg, net, caseNum } =
+                        computeWeightedAvg(r.qty, avail, lastPurPrc, newPrc);
                     const safeUom = (r.uom || '').replace(/"/g, '""');
                     return [
                         `"${r.code}"`,
                         `"${r.code.slice(0, 2).toUpperCase()}"`,
                         r.qty.toFixed(4),
                         avail.toFixed(4),
-                        netQty.toFixed(4),
+                        net.toFixed(4),
                         lastPurPrc.toFixed(2),
-                        isDeficit ? newPrc.toFixed(2) : '0.00',
+                        newPrc.toFixed(2),
+                        oldTotal.toFixed(2),
+                        newTotal.toFixed(2),
                         totalPrice.toFixed(2),
+                        wavg.toFixed(2),
+                        `"C${caseNum}"`,
                         `"${safeUom}"`
                     ].join(',');
                 });
@@ -2049,11 +2647,533 @@
             a.click();
         }
 
+        // ── FORMULA LEGEND TOGGLE ─────────────────────────────────
+        function toggleLegend(bodyId, toggleEl) {
+            const body = document.getElementById(bodyId);
+            body.classList.toggle('open');
+            toggleEl.classList.toggle('open');
+        }
+
+        // ── PER-FG COST STATE ─────────────────────────────────────
+        let pxPrices = {};        // { PX_CODE: price }  — from user-uploaded PX price Excel
+        let pxFormulaCosts = {};  // { PX_CODE: [{md_code, formula_qty, formula_pct}] } — from backend
+        let fgCostData = [];      // final per-FG cost rows
+        let currentFgCostFileSA = null;
+        let currentPxPriceFileSA = null;
+
+        async function onFgCostFileChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            currentFgCostFileSA = file;
+            const statusEl = document.getElementById('fgCostFileStatus');
+            const dropContent = document.getElementById('fgCostDropContent');
+            if (statusEl) statusEl.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            if (dropContent) {
+                dropContent.innerHTML = `
+                    <svg class="dropzone-icon" style="width:1.8rem;height:1.8rem;color:var(--green)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <p class="dropzone-text" style="font-size:0.82rem;color:var(--green)"><strong>${escHtml(file.name)}</strong></p>
+                    <p class="dropzone-hint" style="margin-top:0.3rem">${(file.size / 1024).toFixed(1)} KB</p>
+                `;
+            }
+
+            uploadedFGItems = {};
+            try {
+                if (!window.XLSX) {
+                    await new Promise((resolve, reject) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+                        s.onload = resolve; s.onerror = reject;
+                        document.head.appendChild(s);
+                    });
+                }
+                const buf = await file.arrayBuffer();
+                const wb = XLSX.read(buf, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                let rows = XLSX.utils.sheet_to_json(ws, { defval: '', range: 1 });
+                for (const row of rows) {
+                    const code = String(row['FG_CODE'] || row['FG CODE'] || row['Finish Good'] || row['FG_Code'] || '').trim();
+                    const qty = parseFloat(row['QTY'] || row['Qty'] || row['Item Projection'] || 0);
+                    if (code && !isNaN(qty) && qty > 0) uploadedFGItems[code] = qty;
+                }
+                if (Object.keys(uploadedFGItems).length === 0) {
+                    rows = XLSX.utils.sheet_to_json(ws, { defval: '', range: 0 });
+                    for (const row of rows) {
+                        const code = String(row['FG_CODE'] || row['FG CODE'] || row['Finish Good'] || row['FG_Code'] || '').trim();
+                        const qty = parseFloat(row['QTY'] || row['Qty'] || row['Item Projection'] || 0);
+                        if (code && !isNaN(qty) && qty > 0) uploadedFGItems[code] = qty;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not pre-parse FG items from file:', e);
+            }
+        }
+
+        async function onPxPriceFileSAChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            currentPxPriceFileSA = file;
+            const statusEl = document.getElementById('pxPriceFileStatus');
+            const dropContent = document.getElementById('pxPriceDropContent');
+            if (statusEl) statusEl.textContent = 'Reading PX price file…';
+            try {
+                if (!window.XLSX) {
+                    await new Promise((resolve, reject) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+                        s.onload = resolve;
+                        s.onerror = reject;
+                        document.head.appendChild(s);
+                    });
+                }
+                const buffer = await file.arrayBuffer();
+                const wb = XLSX.read(buffer, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                pxPrices = {};
+                for (const row of rows) {
+                    const code = String(row['ItemCode'] || row['Item Code'] || row['PX_CODE'] || row['Code'] || '').trim();
+                    const price = parseFloat(row['Price'] || row['price'] || row['PRICE'] || 0);
+                    if (code && !isNaN(price)) pxPrices[code] = price;
+                }
+                if (statusEl) statusEl.textContent = `✓ ${Object.keys(pxPrices).length} PX prices loaded.`;
+                if (dropContent) {
+                    dropContent.innerHTML = `
+                        <svg class="dropzone-icon" style="width:1.8rem;height:1.8rem;color:var(--green)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <p class="dropzone-text" style="font-size:0.82rem;color:var(--green)"><strong>${escHtml(file.name)}</strong></p>
+                        <p class="dropzone-hint" style="margin-top:0.3rem">${Object.keys(pxPrices).length} prices</p>
+                    `;
+                }
+            } catch (e) {
+                if (statusEl) statusEl.textContent = `Error reading file: ${e.message}`;
+            }
+        }
+
+        async function runFgCostStandalone() {
+            if (!currentFgCostFileSA) {
+                showToast('Please upload an FG projection Excel file first.', 'error');
+                return;
+            }
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                showToast('Not logged in.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('calcFgCostSABtn');
+            const spinner = document.getElementById('fgCostSASpinner');
+            const spinnerText = document.getElementById('fgCostSASpinnerText');
+            const statusEl = document.getElementById('fgCostSAStatus');
+
+            if (btn) btn.disabled = true;
+            if (spinner) spinner.classList.add('visible');
+            if (spinnerText) spinnerText.textContent = 'Running BOM explosion…';
+            if (statusEl) statusEl.textContent = 'Processing files and querying database…';
+
+            const fd = new FormData();
+            fd.append('file', currentFgCostFileSA);
+
+            try {
+                const [bomRes] = await Promise.all([
+                    fetch(`${API_BASE}/get_bom_only`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: fd
+                    }),
+                    fetchClosingStock(),
+                    fetchNewPrices(),
+                    fetchPxFormulaCosts()
+                ]);
+
+                if (bomRes.status === 401) {
+                    localStorage.removeItem('access_token');
+                    throw new Error('Session expired. Please sign in again.');
+                }
+                if (!bomRes.ok) {
+                    let errMsg = `Server error ${bomRes.status}`;
+                    try { const errJson = await bomRes.json(); errMsg = errJson.detail || errMsg; } catch(e){}
+                    throw new Error(errMsg);
+                }
+
+                const resJson = await bomRes.json();
+                bomData = Array.isArray(resJson) ? resJson : (resJson.bom_rows || []);
+                if (resJson && !Array.isArray(resJson) && Array.isArray(resJson.bom_rows)) {
+                    currentMetadataId = resJson.metadata_id || null;
+                } else {
+                    currentMetadataId = null;
+                }
+                if (!bomData || bomData.length === 0) throw new Error('BOM query returned no results.');
+
+                if (spinnerText) spinnerText.textContent = 'Calculating Per-FG costs…';
+
+                const fgMap = {};
+                fgQtyMap = {};
+
+                // ── PASS 1: Populate fgQtyMap + aggregate total demand per item ────────
+                const totalDemandSA = {};  // { itemCode: totalQty } for RM/PK/LB/R&D items
+                const pxTotalQtySA  = {};  // { pxCode:   totalQty } for PX items across all FGs
+
+                for (const row of bomData) {
+                    const fg       = row['Finish Good'] || '';
+                    const itemCode = row['Item Code'] || '';
+                    const itemProj = parseFloat(row['Item Projection'] || 0);
+                    if (!fg || !itemCode || itemProj <= 0) continue;
+
+                    if (uploadedFGItems[fg] !== undefined && !fgQtyMap[fg]) {
+                        fgQtyMap[fg] = uploadedFGItems[fg];
+                    }
+
+                    if (itemCode.startsWith('PX')) {
+                        pxTotalQtySA[itemCode] = (pxTotalQtySA[itemCode] || 0) + itemProj;
+                    } else {
+                        totalDemandSA[itemCode] = (totalDemandSA[itemCode] || 0) + itemProj;
+                    }
+                }
+
+                // ── PASS 2: Expand PX → RM ingredients and add to totalDemand ────────
+                // PX items are still PRICED via pxPrices (unchanged).
+                // This expansion is only to count the RM quantities hidden inside PX
+                // so that WAP for those RMs is computed on the true total demand.
+                for (const [pxCode, pxQty] of Object.entries(pxTotalQtySA)) {
+                    const ingredients = pxFormulaCosts[pxCode] || [];
+                    for (const ing of ingredients) {
+                        const rmQty = (ing.formula_pct / 100) * pxQty;
+                        totalDemandSA[ing.md_code] = (totalDemandSA[ing.md_code] || 0) + rmQty;
+                    }
+                }
+
+                // ── PASS 3: Compute WAP once per item using total demand ──────────────
+                const wapMapSA = {};
+                for (const [code, totalQty] of Object.entries(totalDemandSA)) {
+                    const stockEntry = closingStock[code] || {};
+                    const avail      = parseFloat(stockEntry.qty          ?? 0);
+                    const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
+                    const newPrc     = parseFloat(newPrices[code]          ?? 0);
+                    const { wavg }   = computeWeightedAvg(totalQty, avail, lastPurPrc, newPrc);
+                    wapMapSA[code]   = wavg;
+                }
+
+                // ── PASS 4: Build fgMap using wapMapSA for RM/PK/LB, pxPrices for PX ─
+                for (const row of bomData) {
+                    const fg       = row['Finish Good'] || '';
+                    const fgName   = row['Finish Good Name'] || '';
+                    const itemCode = row['Item Code'] || '';
+                    const itemProj = parseFloat(row['Item Projection'] || 0);
+
+                    if (!fg || !itemCode || itemProj <= 0) continue;
+
+                    if (!fgMap[fg]) {
+                        fgMap[fg] = { name: fgName, projectedQty: 0, items: [] };
+                    }
+
+                    const isPX = itemCode.startsWith('PX');
+                    let wap = 0;
+                    let priceSource = '';
+
+                    if (isPX) {
+                        wap = parseFloat(pxPrices[itemCode] ?? 0);
+                        priceSource = wap > 0 ? 'PX Upload' : 'Missing';
+                    } else {
+                        wap = wapMapSA[itemCode] ?? 0;
+                        priceSource = 'WAP';
+                    }
+
+                    const value = wap * itemProj;
+                    fgMap[fg].items.push({ code: itemCode, projection: itemProj, wap, value, isPX, priceSource });
+                }
+
+                for (const [fg, grp] of Object.entries(fgMap)) {
+                    const known = fgQtyMap[fg];
+                    grp.projectedQty = known ?? 0;
+                    grp.totalValue   = grp.items.reduce((s, i) => s + i.value, 0);
+                    grp.perUnitCost  = known && known > 0 ? grp.totalValue / known : 0;
+                }
+
+                fgCostData = Object.entries(fgMap).map(([fg, grp]) => ({
+                    fg, ...grp
+                })).sort((a, b) => a.fg.localeCompare(b.fg));
+
+                const tbody = document.getElementById('fgCostSATableBody');
+                if (tbody) {
+                    tbody.innerHTML = fgCostData.map((grp, idx) => {
+                        const fmtCur = v => v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const fmtQty = v => v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+                        const detailRows = grp.items.map(item => {
+                            const cls = item.isPX ? 'badge-px' : codeToClass(item.code);
+                            return `<tr class="per-fg-breakdown-row">` +
+                                `<td colspan="2" style="padding-left:2rem"><span class="code-badge ${cls}">${escHtml(item.code)}</span></td>` +
+                                `<td class="num">${fmtQty(item.projection)}</td>` +
+                                `<td class="price-col">₹${fmtCur(item.wap)} <span style="font-size:0.65rem;color:var(--text-dim)">(${item.priceSource})</span></td>` +
+                                `<td class="wavg-col">₹${fmtCur(item.value)}</td>` +
+                                `<td></td>` +
+                                `</tr>`;
+                        }).join('');
+
+                        return [
+                            `<tr>` +
+                            `<td><span class="code-badge badge-rm">${escHtml(grp.fg)}</span></td>` +
+                            `<td>${escHtml(grp.name)}</td>` +
+                            `<td class="num">${grp.projectedQty > 0 ? fmtQty(grp.projectedQty) : '—'}</td>` +
+                            `<td class="price-total">₹${fmtCur(grp.totalValue)}</td>` +
+                            `<td class="wavg-col">₹${grp.perUnitCost > 0 ? fmtCur(grp.perUnitCost) : '—'}</td>` +
+                            `<td><button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:0.2rem 0.5rem" onclick="toggleFgBreakdown('sa_fgbr_${idx}')">Details</button></td>` +
+                            `</tr>`,
+                            `<tr id="sa_fgbr_${idx}" style="display:none"><td colspan="6" style="padding:0"><table style="width:100%;border-collapse:collapse">${detailRows}</table></td></tr>`
+                        ].join('');
+                    }).join('');
+                }
+
+                const tableWrap = document.getElementById('fgCostSATableWrap');
+                if (tableWrap) tableWrap.style.display = '';
+
+                if (statusEl) statusEl.textContent = `✓ ${fgCostData.length} Per-FG costs computed successfully.`;
+                showToast(`Per-FG costs calculated for ${fgCostData.length} FGs.`, 'success');
+            } catch (err) {
+                if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+                showToast(err.message, 'error');
+                if (err.message.includes('Session expired')) showView(loginView);
+            } finally {
+                if (btn) btn.disabled = false;
+                if (spinner) spinner.classList.remove('visible');
+            }
+        }
+
+        // Read the PX price Excel client-side using FileReader + simple XLSX parsing
+        async function onPxPriceFileChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            document.getElementById('fgCostStatus').textContent = 'Reading PX price file…';
+            try {
+                // Load SheetJS from CDN if not already present
+                if (!window.XLSX) {
+                    await new Promise((resolve, reject) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+                        s.onload = resolve;
+                        s.onerror = reject;
+                        document.head.appendChild(s);
+                    });
+                }
+                const buffer = await file.arrayBuffer();
+                const wb = XLSX.read(buffer, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                pxPrices = {};
+                for (const row of rows) {
+                    const code = String(row['ItemCode'] || row['Item Code'] || row['PX_CODE'] || row['Code'] || '').trim();
+                    const price = parseFloat(row['Price'] || row['price'] || row['PRICE'] || 0);
+                    if (code && !isNaN(price)) pxPrices[code] = price;
+                }
+                document.getElementById('fgCostStatus').textContent =
+                    `✓ ${Object.keys(pxPrices).length} PX prices loaded. Click Calculate.`;
+            } catch (e) {
+                document.getElementById('fgCostStatus').textContent = `Error reading file: ${e.message}`;
+            }
+        }
+
+        // ── FETCH PX FORMULA COSTS (backend) ─────────────────────
+        async function fetchPxFormulaCosts() {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE}/px_formula_costs`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    pxFormulaCosts = await res.json();
+                } else {
+                    console.warn('px_formula_costs fetch failed:', res.status);
+                    pxFormulaCosts = {};
+                }
+            } catch (e) {
+                console.warn('px_formula_costs error:', e);
+                pxFormulaCosts = {};
+            }
+        }
+
+        // ── GET WAP FOR ANY ITEM CODE ─────────────────────────────
+        // Returns the Weighted Average Price for an item based on closing stock + new prices
+        function getWAP(code) {
+            const stockEntry = closingStock[code] || {};
+            const avail = parseFloat(stockEntry.qty ?? 0);
+            const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
+            const newPrc = parseFloat(newPrices[code] ?? 0);
+            // Use a dummy procQty = 1 for WAP-only calculation
+            // The actual item projection is multiplied separately
+            // But we need the real procurement qty for case determination
+            // Look up from finalData
+            const fd = finalData.find(r => r.code === code);
+            const procQty = fd ? fd.qty : 1;
+            const { wavg } = computeWeightedAvg(procQty, avail, lastPurPrc, newPrc);
+            return wavg;
+        }
+
+        // ── BUILD PER-FG COST TABLE ────────────────────────────────
+        async function buildPerFGCostTable() {
+            if (!bomData.length) {
+                showToast('No BOM data available. Run a query first.', 'error');
+                return;
+            }
+            if (!Object.keys(closingStock).length) {
+                showToast('Fetching stock data…', '');
+                await Promise.all([fetchClosingStock(), fetchNewPrices()]);
+            }
+
+            document.getElementById('fgCostStatus').textContent = 'Fetching PX formula costs…';
+            await fetchPxFormulaCosts();
+
+            document.getElementById('fgCostStatus').textContent = 'Calculating…';
+
+            // ── PASS 1: Aggregate total demand per item across all FGs ────────────
+            const totalDemand = {};  // { itemCode: totalQty } for RM/PK/LB/R&D items
+            const pxTotalQty  = {};  // { pxCode:   totalQty } for PX items
+            const fgMap = {};
+
+            for (const row of bomData) {
+                const itemCode = row['Item Code'] || '';
+                const itemProj = parseFloat(row['Item Projection'] || 0);
+                if (!itemCode || itemProj <= 0) continue;
+
+                if (itemCode.startsWith('PX')) {
+                    pxTotalQty[itemCode] = (pxTotalQty[itemCode] || 0) + itemProj;
+                } else {
+                    totalDemand[itemCode] = (totalDemand[itemCode] || 0) + itemProj;
+                }
+            }
+
+            // ── PASS 2: Expand PX → RM ingredients and add to totalDemand ────────
+            // PX items are still PRICED via pxPrices (unchanged).
+            // This expansion is only to count the RM quantities hidden inside PX
+            // so that WAP for those RMs is computed on the true total demand.
+            for (const [pxCode, pxQty] of Object.entries(pxTotalQty)) {
+                const ingredients = pxFormulaCosts[pxCode] || [];
+                for (const ing of ingredients) {
+                    const rmQty = (ing.formula_pct / 100) * pxQty;
+                    totalDemand[ing.md_code] = (totalDemand[ing.md_code] || 0) + rmQty;
+                }
+            }
+
+            // ── PASS 3: Compute WAP once per item using total demand ──────────────
+            const wapMap = {};
+            for (const [code, totalQty] of Object.entries(totalDemand)) {
+                const stockEntry = closingStock[code] || {};
+                const avail      = parseFloat(stockEntry.qty          ?? 0);
+                const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
+                const newPrc     = parseFloat(newPrices[code]          ?? 0);
+                const { wavg }   = computeWeightedAvg(totalQty, avail, lastPurPrc, newPrc);
+                wapMap[code]     = wavg;
+            }
+
+            // ── PASS 4: Build fgMap using wapMap for RM/PK/LB, pxPrices for PX ──
+            for (const row of bomData) {
+                const fg       = row['Finish Good'] || '';
+                const fgName   = row['Finish Good Name'] || '';
+                const itemCode = row['Item Code'] || '';
+                const itemProj = parseFloat(row['Item Projection'] || 0);
+
+                if (!fg || !itemCode || itemProj <= 0) continue;
+
+                if (!fgMap[fg]) {
+                    fgMap[fg] = { name: fgName, projectedQty: 0, items: [] };
+                }
+
+                const isPX = itemCode.startsWith('PX');
+                let wap = 0;
+                let priceSource = '';
+
+                if (isPX) {
+                    // PX items: priced from uploaded price Excel (unchanged)
+                    wap = parseFloat(pxPrices[itemCode] ?? 0);
+                    priceSource = wap > 0 ? 'PX Upload' : 'Missing';
+                } else {
+                    wap = wapMap[itemCode] ?? 0;
+                    priceSource = 'WAP';
+                }
+
+                const value = wap * itemProj;
+                fgMap[fg].items.push({ code: itemCode, projection: itemProj, wap, value, isPX, priceSource });
+            }
+
+            for (const [fg, grp] of Object.entries(fgMap)) {
+                const known = fgQtyMap[fg];
+                grp.projectedQty = known ?? 0;
+                grp.totalValue   = grp.items.reduce((s, i) => s + i.value, 0);
+                grp.perUnitCost  = known && known > 0 ? grp.totalValue / known : 0;
+            }
+
+            fgCostData = Object.entries(fgMap).map(([fg, grp]) => ({
+                fg, ...grp
+            })).sort((a, b) => a.fg.localeCompare(b.fg));
+
+            const tbody = document.getElementById('fgCostTableBody');
+            tbody.innerHTML = fgCostData.map((grp, idx) => {
+                const fmtCur = v => v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const fmtQty = v => v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+                const detailRows = grp.items.map(item => {
+                    const cls = item.isPX ? 'badge-px' : codeToClass(item.code);
+                    return `<tr class="per-fg-breakdown-row">` +
+                        `<td colspan="2" style="padding-left:2rem"><span class="code-badge ${cls}">${escHtml(item.code)}</span></td>` +
+                        `<td class="num">${fmtQty(item.projection)}</td>` +
+                        `<td class="price-col">${fmtCur(item.wap)} <span style="font-size:0.65rem;color:var(--text-dim)">(${item.priceSource})</span></td>` +
+                        `<td class="wavg-col">${fmtCur(item.value)}</td>` +
+                        `<td></td>` +
+                        `</tr>`;
+                }).join('');
+
+                return [
+                    `<tr>` +
+                    `<td><span class="code-badge badge-rm">${escHtml(grp.fg)}</span></td>` +
+                    `<td>${escHtml(grp.name)}</td>` +
+                    `<td class="num">${grp.projectedQty > 0 ? fmtQty(grp.projectedQty) : '—'}</td>` +
+                    `<td class="price-total">₹${fmtCur(grp.totalValue)}</td>` +
+                    `<td class="wavg-col">₹${grp.perUnitCost > 0 ? fmtCur(grp.perUnitCost) : '—'}</td>` +
+                    `<td><button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:0.2rem 0.5rem" onclick="toggleFgBreakdown('fgbr_${idx}')">Details</button></td>` +
+                    `</tr>`,
+                    `<tr id="fgbr_${idx}" style="display:none"><td colspan="6" style="padding:0"><table style="width:100%;border-collapse:collapse">${detailRows}</table></td></tr>`
+                ].join('');
+            }).join('');
+
+            document.getElementById('fgCostStatus').textContent =
+                `✓ ${fgCostData.length} FG costs computed.`;
+            document.getElementById('fgCostTabBtn').style.display = '';
+            switchTab(document.getElementById('fgCostTabBtn'), 'fgCostTable');
+        }
+
+        function toggleFgBreakdown(id) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+        }
+
+        // ── DOWNLOAD PER-FG COST CSV ──────────────────────────────
+        function downloadFgCostCSV() {
+            if (!fgCostData.length) { showToast('No Per-FG cost data. Run Calculate first.', 'error'); return; }
+            const cols = ['FG Code', 'FG Name', 'Projected Qty', 'Total Material Cost', 'Per Unit Cost'];
+            const rows = fgCostData.map(g => [
+                `"${g.fg}"`,
+                `"${(g.name || '').replace(/"/g, '""')}"`,
+                g.projectedQty.toFixed(4),
+                g.totalValue.toFixed(2),
+                g.perUnitCost.toFixed(2)
+            ].join(','));
+            const lines = [cols.map(c => `"${c}"`).join(','), ...rows];
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `per_fg_cost_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        }
+
         // ── SIGN OUT ──────────────────────────────────────────────
         function signOut() {
             localStorage.removeItem('access_token');
             clearInterval(pollingInterval);
-            bomData = []; finalData = [];
+            bomData = []; finalData = []; pxPrices = {}; pxFormulaCosts = {}; fgCostData = [];
+            currentFgCostFileSA = null; currentPxPriceFileSA = null;
             document.getElementById('loginForm').reset();
             resetUpload();
             showView(loginView);
@@ -2062,20 +3182,36 @@
         function goToUpload() {
             clearInterval(pollingInterval);
             bomData = []; finalData = []; closingStock = {}; newPrices = {};
+            pxPrices = {}; pxFormulaCosts = {}; fgCostData = [];
+            currentFgCostFileSA = null; currentPxPriceFileSA = null;
+            fgQtyMap = {}; uploadedFGItems = {};
             currentMetadataId = null;  // clear stale ID so next BOM-only run starts fresh
-            document.getElementById('finalTableBody').innerHTML = '';
-            document.getElementById('bomTablesContainer').innerHTML = '';
-            document.getElementById('devModeToggle').checked = false;
-            document.getElementById('stockToggleWrap').classList.remove('active');
+            const finalTbody = document.getElementById('finalTableBody');
+            if (finalTbody) finalTbody.innerHTML = '';
+            const bomContainer = document.getElementById('bomTablesContainer');
+            if (bomContainer) bomContainer.innerHTML = '';
+            const fgCostSATbody = document.getElementById('fgCostSATableBody');
+            if (fgCostSATbody) fgCostSATbody.innerHTML = '';
+            const fgCostSAStatus = document.getElementById('fgCostSAStatus');
+            if (fgCostSAStatus) fgCostSAStatus.textContent = 'Upload FG projection Excel + PX price Excel, then calculate ↓';
+            const devToggle = document.getElementById('devModeToggle');
+            if (devToggle) devToggle.checked = false;
+            const stockWrap = document.getElementById('stockToggleWrap');
+            if (stockWrap) stockWrap.classList.remove('active');
+            const procLegend = document.getElementById('procurementLegend');
+            if (procLegend) procLegend.style.display = 'none';
             devMode = false;
             stockViewMode = false;
-            document.getElementById('bomTabBtn').style.display = 'none';
-            // Reset table head back to default columns
-            document.getElementById('finalTableHead').innerHTML = `
-                <th>Code</th>
-                <th>Type</th>
-                <th style="text-align:right">Required Qty</th>
-                <th>UOM</th>`;
+            const bomTab = document.getElementById('bomTabBtn');
+            if (bomTab) bomTab.style.display = 'none';
+            const finalHead = document.getElementById('finalTableHead');
+            if (finalHead) {
+                finalHead.innerHTML = `
+                    <th>Code</th>
+                    <th>Type</th>
+                    <th style="text-align:right">Required Qty</th>
+                    <th>UOM</th>`;
+            }
             resetUpload();
             showView(uploadView);
         }

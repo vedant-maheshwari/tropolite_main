@@ -156,12 +156,15 @@ async def upload_excel(
     db_md : Session = Depends(get_db_md),
     db_admin : Session = Depends(get_db_admin)
 ):
-    if not file.filename.endswith(('.xlsx', '.xls', '.csv')):
-        raise HTTPException(400, detail='Invalid file type.')
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ['.xlsx', '.xls', '.csv']:
+        if not ext:
+            ext = '.xlsx'
+        else:
+            raise HTTPException(400, detail='Invalid file type.')
 
     save_dir = '/tmp/uploaded_files'
     os.makedirs(save_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename)[1]
     IST = timezone(timedelta(hours=5, minutes=30))
     ts_str = datetime.now(IST).strftime('%Y%m%d_%H%M%S')
     original_stem = os.path.splitext(file.filename)[0]
@@ -227,12 +230,15 @@ async def get_bom_only(
     db_admin: Session = Depends(get_db_admin)
 ):
     """Runs only the BOM query (no PX conversion). Returns the per-FG BOM table directly."""
-    if not file.filename.endswith(('.xlsx', '.xls', '.csv')):
-        raise HTTPException(400, detail='Invalid file type.')
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ['.xlsx', '.xls', '.csv']:
+        if not ext:
+            ext = '.xlsx'
+        else:
+            raise HTTPException(400, detail='Invalid file type.')
 
     save_dir = '/tmp/uploaded_files'
     os.makedirs(save_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename)[1]
     IST = timezone(timedelta(hours=5, minutes=30))
     ts_str = datetime.now(IST).strftime('%Y%m%d_%H%M%S')
     original_stem = os.path.splitext(file.filename)[0]
@@ -503,12 +509,15 @@ async def upload_price_excel(
     Admin-only. Upload a monthly price Excel with columns [ItemCode, Price].
     The prices are stored in-memory and used in the Stock View pricing columns.
     """
-    if not file.filename.endswith(('.xlsx', '.xls')):
-        raise HTTPException(400, detail='Invalid file type. Only .xlsx / .xls accepted.')
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ['.xlsx', '.xls']:
+        if not ext:
+            ext = '.xlsx'
+        else:
+            raise HTTPException(400, detail='Invalid file type. Only .xlsx / .xls accepted.')
 
     save_dir = '/tmp/uploaded_files'
     os.makedirs(save_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename)[1]
     file_location = f'{save_dir}/price_list_{datetime.now().strftime("%Y%m%d_%H%M%S")}{ext}'
 
     with open(file_location, 'wb+') as f:
@@ -590,6 +599,43 @@ def get_new_prices(
 #     results = db.execute(query)
 #     records = results.mappings().all()
 #     return records
+
+@app.post('/diagnose_bom')
+async def diagnose_bom(
+    fg_codes: List[str],
+    db: Session = Depends(get_db)
+):
+    """
+    POST body: ["FB0001", "FB0002"]
+    Returns bom_headers, bom_detail_pk_lb, formula_check for each FG code.
+    """
+    if not fg_codes:
+        raise HTTPException(400, detail='Send a JSON list of FG codes, e.g. ["FB0001","FB0002"]')
+    try:
+        return services.diagnose_bom_zeros(fg_codes, db)
+    except Exception as e:
+        raise HTTPException(400, detail=f'Diagnostic query failed: {e}')
+
+
+@app.get('/px_formula_costs')
+def get_px_formula_costs(
+    current_user: str = Depends(auth.get_current_user),
+    db_md: Session = Depends(get_db_md)
+):
+    """
+    Returns the PX → MD formula breakdown for all active PX codes.
+    Used by the Per-FG Cost Calculator in the frontend to price PX items
+    by reverse-mapping their formula ingredients to MD code costs.
+
+    Response: { PX_Code: [ { md_code, formula_qty, formula_pct }, ... ] }
+    formula_pct values sum to 100 per PX code.
+    """
+    try:
+        return services.get_px_formula_costs(db_md)
+    except Exception as e:
+        raise HTTPException(400, detail=f'Error fetching PX formula costs: {e}')
+
+
 
 @app.post('/run_query')
 def px_to_md_conversion_lookup(db : Session = Depends(get_db_md)):
