@@ -881,6 +881,7 @@ def px_to_md_conversion_lookup(db : Session):
         ON FH.DocEntry = F1.DocEntry
     WHERE BH.U_STATUS = 'Active'
       AND FH.U_STATUS = 'Active'
+      AND FE.Level < 10
 )
 SELECT
     PX_Code,
@@ -896,7 +897,7 @@ FROM FormulaExplosion
 ORDER BY
     PX_Code,
     MD_Code
-OPTION (MAXRECURSION 1000);
+OPTION (MAXRECURSION 100);
     """)
 
     results = db.execute(query)
