@@ -956,7 +956,11 @@ def get_closing_stock(db: Session):
         SELECT 
             OITM.ItemCode,
             OITM.LastPurPrc,
-            SUM(m.InQty - m.OutQty) AS Closing_Qty
+            SUM(m.InQty - m.OutQty) AS Closing_Qty,
+            SUM(m.TransValue) / CASE 
+                                    WHEN SUM(m.InQty - m.OutQty) = 0 THEN 1 
+                                    ELSE SUM(m.InQty - m.OutQty) 
+                                END AS Closing_Price
         FROM OITM (NOLOCK)
         JOIN OINM (NOLOCK) m ON OITM.ItemCode = m.ItemCode
         WHERE OITM.InvntItem = 'Y'
@@ -980,13 +984,14 @@ def get_closing_stock(db: Session):
     
     records = result.mappings().all()
     
-    # Return a dict: { ItemCode: { 'qty': <Closing_Qty>, 'last_pur_prc': <LastPurPrc> } }
+    # Return a dict: { ItemCode: { 'qty': <Closing_Qty>, 'last_pur_prc': <LastPurPrc>, 'closing_price': <Closing_Price> } }
     stock_dict = {
-        row['ItemCode']: {
+        str(row['ItemCode']).strip().upper(): {
             'qty': float(row['Closing_Qty']) if row['Closing_Qty'] is not None else 0.0,
-            'last_pur_prc': float(row['LastPurPrc']) if row['LastPurPrc'] is not None else 0.0
+            'last_pur_prc': float(row['LastPurPrc']) if row['LastPurPrc'] is not None else 0.0,
+            'closing_price': float(row['Closing_Price']) if row['Closing_Price'] is not None else 0.0
         }
-        for row in records
+        for row in records if row['ItemCode']
     }
     
     return stock_dict
@@ -1024,12 +1029,12 @@ def save_price_list_to_db(filepath: str, uploaded_by: str, db_admin) -> int:
     db_admin.query(_models.PriceList).delete()
     db_admin.bulk_save_objects([
         _models.PriceList(
-            item_code   = row['ItemCode'],
+            item_code   = str(row['ItemCode']).strip().upper(),
             price       = float(row['Price']),
             uploaded_by = uploaded_by,
             uploaded_at = now,
         )
-        for _, row in df.iterrows()
+        for _, row in df.iterrows() if pd.notna(row['ItemCode'])
     ])
     db_admin.commit()
     return len(df)
@@ -1042,7 +1047,7 @@ def get_price_list_from_db(db_admin) -> dict:
     """
     import models as _models
     rows = db_admin.query(_models.PriceList.item_code, _models.PriceList.price).all()
-    return {row.item_code: float(row.price) for row in rows}
+    return {str(row.item_code).strip().upper(): float(row.price) for row in rows if row.item_code}
 
 
 

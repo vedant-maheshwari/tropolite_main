@@ -1422,14 +1422,14 @@
                 <table>
                     <thead>
                         <tr id="finalTableHead">
-                            <th>Item Code</th>
-                            <th style="text-align:right">Item Projection</th>
-                            <th style="text-align:right">Avail Stock Qty</th>
-                            <th style="text-align:right">Avail Stock Price</th>
+                            <th>Item code</th>
+                            <th style="text-align:right">Item projection</th>
+                            <th style="text-align:right">Available Stock Qty</th>
+                            <th style="text-align:right">Available stock Price per unit</th>
                             <th style="text-align:right">Stock Value</th>
                             <th style="text-align:right">Required Qty</th>
-                            <th style="text-align:right">New Price</th>
-                            <th style="text-align:right">Last Purchase Price</th>
+                            <th style="text-align:right">New price</th>
+                            <th style="text-align:right">Last purchase price</th>
                             <th style="text-align:right">New Value</th>
                             <th style="text-align:right">Weighted Avg</th>
                             <th>UOM</th>
@@ -1454,14 +1454,14 @@
                 </div>
                 <div class="formula-legend-body" id="procurementLegendBody">
                     <h4>Column Formulas</h4>
-                    <div class="fml">Stock Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= Avail Stock Qty × Avail Stock Price/unit</div>
-                    <div class="fml">Required Qty&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= MAX(0, Item Projection − Avail Stock Qty)</div>
-                    <div class="fml">New Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= if New Price ≤ 0 → Required Qty × Last Purchase Price, else Required Qty × New Price</div>
-                    <div class="fml">Weighted Avg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (New Value + Stock Value) / (Avail Stock Qty + Required Qty)</div>
+                    <div class="fml">Stock Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= Available Stock Qty × Available stock Price per unit</div>
+                    <div class="fml">Required Qty&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= MAX(0, Item projection − Available Stock Qty)</div>
+                    <div class="fml">New Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= if New price ≤ 0 → Required Qty × Last purchase price, else Required Qty × New price</div>
+                    <div class="fml">Weighted Avg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (New Value + Stock Value) / (Available Stock Qty + Required Qty)</div>
                     <h4>Notes</h4>
-                    <div class="fml-note">• Avail Stock Price = Last Purchase Price = SAP OITM.LastPurPrc (same field, separate roles).</div>
-                    <div class="fml-note">• New Price comes from the admin-uploaded price list (stored in Postgres).</div>
-                    <div class="fml-note">• If no stock and no New Price: New Value = Required Qty × Last Purchase Price.</div>
+                    <div class="fml-note">• Available stock Price per unit is fetched from OINM closing valuation price (falling back to Last purchase price).</div>
+                    <div class="fml-note">• New price comes from the admin-uploaded price list (persisted in Postgres price_list table).</div>
+                    <div class="fml-note">• Last purchase price comes directly from SAP OITM.LastPurPrc.</div>
                 </div>
             </div>
         </div>
@@ -2203,6 +2203,22 @@
 
         // ── RENDER FINAL TABLE (10-column always-on) ───────────────
         function renderFinalTable() {
+            const finalHead = document.getElementById('finalTableHead');
+            if (finalHead) {
+                finalHead.innerHTML = `
+                    <th>Item code</th>
+                    <th style="text-align:right">Item projection</th>
+                    <th style="text-align:right">Available Stock Qty</th>
+                    <th style="text-align:right">Available stock Price per unit</th>
+                    <th style="text-align:right">Stock Value</th>
+                    <th style="text-align:right">Required Qty</th>
+                    <th style="text-align:right">New price</th>
+                    <th style="text-align:right">Last purchase price</th>
+                    <th style="text-align:right">New Value</th>
+                    <th style="text-align:right">Weighted Avg</th>
+                    <th>UOM</th>`;
+            }
+
             const fmtQty   = v => (v == null || isNaN(v)) ? '—'
                 : Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
             const fmtPrice = v => (v == null || isNaN(v) || v === 0) ? '—'
@@ -2214,13 +2230,24 @@
                     ? `<span style="color:var(--text-dim);font-family:var(--mono);font-size:0.76rem">${escHtml(row.uom)}</span>`
                     : '';
 
+                const lookupEntry = (map, code) => {
+                    if (!map || !code) return undefined;
+                    if (map[code] !== undefined) return map[code];
+                    const clean = String(code).trim().toUpperCase();
+                    if (map[clean] !== undefined) return map[clean];
+                    const key = Object.keys(map).find(k => String(k).trim().toUpperCase() === clean);
+                    return key !== undefined ? map[key] : undefined;
+                };
+
                 // ── source values ──
                 const itemProj  = parseFloat(row.qty) || 0;                       // col 2
-                const stockEntry = closingStock[row.code] || {};
-                const availQty  = parseFloat(stockEntry.qty          ?? 0);       // col 3
-                const availPrc  = parseFloat(stockEntry.last_pur_prc ?? 0);       // col 4 (closing price)
-                const lpp       = availPrc;                                        // col 8 (same field)
-                const newPrc    = parseFloat(newPrices[row.code]     ?? 0);       // col 7
+                const stockEntry = lookupEntry(closingStock, row.code) || {};
+                const availQty  = parseFloat(stockEntry.qty ?? 0);                // col 3
+                const closingPrcObj = parseFloat(stockEntry.closing_price);
+                const lastPurPrcObj = parseFloat(stockEntry.last_pur_prc || 0);
+                const availPrc  = (!isNaN(closingPrcObj) && closingPrcObj !== 0) ? closingPrcObj : lastPurPrcObj; // col 4 (Available stock Price per unit)
+                const lpp       = lastPurPrcObj;                                  // col 8 (Last purchase price)
+                const newPrc    = parseFloat(lookupEntry(newPrices, row.code) ?? 0); // col 7
 
                 // ── computed columns ──
                 const stockVal  = availQty * availPrc;                            // col 5
@@ -2229,7 +2256,7 @@
                     ? reqQty * lpp
                     : reqQty * newPrc;
                 const denom     = availQty + reqQty;
-                const wavg      = denom > 0 ? (newVal + stockVal) / denom : 0;   // col 10
+                const wavg      = denom > 0 ? (newVal + stockVal) / denom : 0;    // col 10
 
                 const needsBuy  = reqQty > 0;
 
@@ -2472,18 +2499,29 @@
             if (!finalData.length) return;
 
             const cols = [
-                'Item Code', 'Item Projection', 'Avail Stock Qty',
-                'Avail Stock Price', 'Stock Value', 'Required Qty',
-                'New Price', 'Last Purchase Price', 'New Value', 'Weighted Avg', 'UOM'
+                'Item code', 'Item projection', 'Available Stock Qty',
+                'Available stock Price per unit', 'Stock Value', 'Required Qty',
+                'New price', 'Last purchase price', 'New Value', 'Weighted Avg', 'UOM'
             ];
+
+            const lookupEntry = (map, code) => {
+                if (!map || !code) return undefined;
+                if (map[code] !== undefined) return map[code];
+                const clean = String(code).trim().toUpperCase();
+                if (map[clean] !== undefined) return map[clean];
+                const key = Object.keys(map).find(k => String(k).trim().toUpperCase() === clean);
+                return key !== undefined ? map[key] : undefined;
+            };
 
             const rows = finalData.map(r => {
                 const itemProj  = parseFloat(r.qty) || 0;
-                const stockEntry = closingStock[r.code] || {};
-                const availQty  = parseFloat(stockEntry.qty          ?? 0);
-                const availPrc  = parseFloat(stockEntry.last_pur_prc ?? 0);
-                const lpp       = availPrc;
-                const newPrc    = parseFloat(newPrices[r.code]       ?? 0);
+                const stockEntry = lookupEntry(closingStock, r.code) || {};
+                const availQty  = parseFloat(stockEntry.qty ?? 0);
+                const closingPrcObj = parseFloat(stockEntry.closing_price);
+                const lastPurPrcObj = parseFloat(stockEntry.last_pur_prc || 0);
+                const availPrc  = (!isNaN(closingPrcObj) && closingPrcObj !== 0) ? closingPrcObj : lastPurPrcObj;
+                const lpp       = lastPurPrcObj;
+                const newPrc    = parseFloat(lookupEntry(newPrices, r.code) ?? 0);
                 const stockVal  = availQty * availPrc;
                 const reqQty    = Math.max(0, itemProj - availQty);
                 const newVal    = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
@@ -3097,9 +3135,16 @@
             const finalHead = document.getElementById('finalTableHead');
             if (finalHead) {
                 finalHead.innerHTML = `
-                    <th>Code</th>
-                    <th>Type</th>
+                    <th>Item code</th>
+                    <th style="text-align:right">Item projection</th>
+                    <th style="text-align:right">Available Stock Qty</th>
+                    <th style="text-align:right">Available stock Price per unit</th>
+                    <th style="text-align:right">Stock Value</th>
                     <th style="text-align:right">Required Qty</th>
+                    <th style="text-align:right">New price</th>
+                    <th style="text-align:right">Last purchase price</th>
+                    <th style="text-align:right">New Value</th>
+                    <th style="text-align:right">Weighted Avg</th>
                     <th>UOM</th>`;
             }
             resetUpload();
