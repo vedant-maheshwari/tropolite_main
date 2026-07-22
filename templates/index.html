@@ -1374,17 +1374,6 @@
                 <p id="resultsSubtitle">Final aggregated quantities to order</p>
             </div>
             <div class="results-actions">
-                <!-- Stock View toggle -->
-                <div class="stock-toggle-wrap" id="stockToggleWrap"
-                    title="Show available stock and net required quantity" onclick="toggleStockView()">
-                    <span class="toggle-track"></span>
-                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                        style="flex-shrink:0">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 10h18M3 6h18M3 14h18M3 18h18" />
-                    </svg>
-                    Stock View
-                </div>
                 <button class="btn btn-ghost btn-sm" onclick="downloadFinalCSV()">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1428,15 +1417,21 @@
             </div>
         </div>
 
-        <!-- Final aggregated table -->
         <div class="table-section active" id="finalTable">
             <div class="table-outer">
                 <table>
                     <thead>
                         <tr id="finalTableHead">
-                            <th>Code</th>
-                            <th>Type</th>
+                            <th>Item Code</th>
+                            <th style="text-align:right">Item Projection</th>
+                            <th style="text-align:right">Avail Stock Qty</th>
+                            <th style="text-align:right">Avail Stock Price</th>
+                            <th style="text-align:right">Stock Value</th>
                             <th style="text-align:right">Required Qty</th>
+                            <th style="text-align:right">New Price</th>
+                            <th style="text-align:right">Last Purchase Price</th>
+                            <th style="text-align:right">New Value</th>
+                            <th style="text-align:right">Weighted Avg</th>
                             <th>UOM</th>
                         </tr>
                     </thead>
@@ -1444,7 +1439,7 @@
                 </table>
             </div>
             <!-- Formula Legend: Procurement Pricing -->
-            <div class="formula-legend" id="procurementLegend" style="display:none">
+            <div class="formula-legend" id="procurementLegend">
                 <div class="formula-legend-toggle" onclick="toggleLegend('procurementLegendBody', this)">
                     <span class="formula-legend-title">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1458,44 +1453,15 @@
                     </svg>
                 </div>
                 <div class="formula-legend-body" id="procurementLegendBody">
-                    <h4>Variables</h4>
-                    <div class="fml">Proc&nbsp;= Procurement Qty (Required Qty from BOM explosion)</div>
-                    <div class="fml">Avail = Available Stock (closing stock from SAP warehouses)</div>
-                    <div class="fml">LPP&nbsp;&nbsp;= Last Purchase Price (SAP OITM.LastPurPrc)</div>
-                    <div class="fml">NPP&nbsp;&nbsp;= New Purchase Price (from admin monthly price upload)</div>
-                    <div class="fml">Net&nbsp;&nbsp;= Net Required = MAX(0, Proc − Avail)</div>
-
                     <h4>Column Formulas</h4>
-                    <div class="fml">Old Stock Price Total&nbsp;&nbsp;&nbsp;= MIN(Avail, Proc) × LPP</div>
-                    <div class="fml">New Purchase Price Total = Net × NPP</div>
-                    <div class="fml">Weighted Avg Price&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (Old Stock Price Total + New
-                        Purchase Price Total) ÷ Proc</div>
-
-                    <h4>Case Rules for Weighted Avg Price</h4>
-                    <div class="legend-case-row"><span class="case-badge case-1">CASE 1</span> <span>Avail ≥ Proc →
-                            <b>Weighted Avg = LPP</b> (stock covers full requirement; no new purchase needed)</span>
-                    </div>
-                    <div class="legend-case-row"><span class="case-badge case-2">CASE 2</span> <span>Avail = 0 and NPP
-                            &gt; 0 → <b>Weighted Avg = NPP</b> (zero stock, must buy everything at new price)</span>
-                    </div>
-                    <div class="legend-case-row"><span class="case-badge case-3">CASE 3</span> <span>Avail = 0 and NPP =
-                            0/missing → <b>Weighted Avg = LPP</b> (zero stock, no new price available; fallback to last
-                            known price)</span></div>
-                    <div class="legend-case-row"><span class="case-badge case-4">CASE 4</span> <span>0 &lt; Avail &lt;
-                            Proc and NPP &gt; 0 → <b>Weighted Avg = (Avail×LPP + Net×NPP) ÷ Proc</b> (blended: partial
-                            stock at old price, remainder at new price)</span></div>
-                    <div class="legend-case-row"><span class="case-badge case-5">CASE 5</span> <span>0 &lt; Avail &lt;
-                            Proc and NPP = 0/missing → <b>Weighted Avg = LPP</b> (partial stock, no new price; fallback
-                            to LPP)</span></div>
-
+                    <div class="fml">Stock Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= Avail Stock Qty × Avail Stock Price/unit</div>
+                    <div class="fml">Required Qty&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= MAX(0, Item Projection − Avail Stock Qty)</div>
+                    <div class="fml">New Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= if New Price ≤ 0 → Required Qty × Last Purchase Price, else Required Qty × New Price</div>
+                    <div class="fml">Weighted Avg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (New Value + Stock Value) / (Avail Stock Qty + Required Qty)</div>
                     <h4>Notes</h4>
-                    <div class="fml-note">• LPP comes from SAP's OITM.LastPurPrc field (last recorded purchase price).
-                    </div>
-                    <div class="fml-note">• NPP is loaded from the admin monthly price Excel (ItemCode → Price sheet).
-                    </div>
-                    <div class="fml-note">• Total Price column = Old Stock Price Total + New Purchase Price Total.</div>
-                    <div class="fml-note">• Weighted Avg is used downstream in the Per-FG Cost tab for non-PX items.
-                    </div>
+                    <div class="fml-note">• Avail Stock Price = Last Purchase Price = SAP OITM.LastPurPrc (same field, separate roles).</div>
+                    <div class="fml-note">• New Price comes from the admin-uploaded price list (stored in Postgres).</div>
+                    <div class="fml-note">• If no stock and no New Price: New Value = Required Qty × Last Purchase Price.</div>
                 </div>
             </div>
         </div>
@@ -1710,7 +1676,6 @@
         let currentFile = null;
         let toastTimer = null;
         let devMode = false;
-        let stockViewMode = false;
         let pollingInterval = null;
         let bomData = [];
         let finalData = [];
@@ -2155,29 +2120,7 @@
         }
 
         // ── STOCK VIEW TOGGLE ──────────────────────────────────────
-        async function toggleStockView() {
-            stockViewMode = !stockViewMode;
-            const toggleWrap = document.getElementById('stockToggleWrap');
-            if (toggleWrap) toggleWrap.classList.toggle('active', stockViewMode);
-            renderFinalTable();
 
-            if (stockViewMode) {
-                // Fetch fresh closing stock and new prices whenever Stock View is toggled on
-                if (Object.keys(closingStock).length === 0 || Object.keys(newPrices).length === 0) {
-                    showToast('Fetching stock & pricing from API…', 'info');
-                    await Promise.all([fetchClosingStock(), fetchNewPrices()]);
-                    if (stockViewMode) {
-                        renderFinalTable();
-                        showToast('Stock view updated with latest API data.', 'success');
-                    }
-                } else {
-                    // Refresh in background to ensure latest quantities from database
-                    Promise.all([fetchClosingStock(), fetchNewPrices()]).then(() => {
-                        if (stockViewMode) renderFinalTable();
-                    });
-                }
-            }
-        }
 
         // ── FETCH CLOSING STOCK ────────────────────────────────────
         async function fetchClosingStock() {
@@ -2237,131 +2180,79 @@
             return 'badge-rm';   // PM, R&D, and anything else → crimson
         }
 
-        // ── WEIGHTED AVG PRICE HELPER ──────────────────────────────
-        // Returns { oldTotal, newTotal, totalPrice, wavg, caseNum } for a row
+        // ── WEIGHTED AVG HELPER (used by Per-FG Cost Calculator) ──
+        // NOTE: The procurement table no longer uses this — it has its own inline formulas.
         function computeWeightedAvg(procQty, avail, lastPurPrc, newPrc) {
-            const net = Math.max(0, procQty - avail);
+            const net       = Math.max(0, procQty - avail);
             const stockUsed = Math.min(avail, procQty);
-
             let oldTotal, newTotal, wavg, caseNum;
-
             if (avail >= procQty) {
-                // CASE 1: stock fully covers requirement
-                oldTotal = stockUsed * lastPurPrc;
-                newTotal = 0;
-                wavg = lastPurPrc;
-                caseNum = 1;
+                oldTotal = stockUsed * lastPurPrc; newTotal = 0; wavg = lastPurPrc; caseNum = 1;
             } else if (avail === 0 && newPrc > 0) {
-                // CASE 2: zero stock, new price available
-                oldTotal = 0;
-                newTotal = procQty * newPrc;
-                wavg = newPrc;
-                caseNum = 2;
+                oldTotal = 0; newTotal = procQty * newPrc; wavg = newPrc; caseNum = 2;
             } else if (avail === 0 && newPrc === 0) {
-                // CASE 3: zero stock, no new price → fallback to LPP
-                oldTotal = 0;
-                newTotal = 0;
-                wavg = lastPurPrc;
-                caseNum = 3;
+                oldTotal = 0; newTotal = 0; wavg = lastPurPrc; caseNum = 3;
             } else if (avail > 0 && avail < procQty && newPrc > 0) {
-                // CASE 4: partial stock, new price available → blended
-                oldTotal = stockUsed * lastPurPrc;
-                newTotal = net * newPrc;
-                wavg = procQty > 0 ? (oldTotal + newTotal) / procQty : 0;
-                caseNum = 4;
+                oldTotal = stockUsed * lastPurPrc; newTotal = net * newPrc;
+                wavg = procQty > 0 ? (oldTotal + newTotal) / procQty : 0; caseNum = 4;
             } else {
-                // CASE 5: partial stock, no new price → fallback to LPP
-                oldTotal = stockUsed * lastPurPrc;
-                newTotal = 0;
-                wavg = lastPurPrc;
-                caseNum = 5;
+                oldTotal = stockUsed * lastPurPrc; newTotal = 0; wavg = lastPurPrc; caseNum = 5;
             }
-
             return { oldTotal, newTotal, totalPrice: oldTotal + newTotal, wavg, net, stockUsed, caseNum };
         }
 
-        // ── RENDER FINAL TABLE ─────────────────────────────────────
+        // ── RENDER FINAL TABLE (10-column always-on) ───────────────
         function renderFinalTable() {
-            const head = document.getElementById('finalTableHead');
-            if (stockViewMode) {
-                head.innerHTML = `
-                    <th>Code</th>
-                    <th>Type</th>
-                    <th style="text-align:right">Required Qty</th>
-                    <th style="text-align:right">Available Stock</th>
-                    <th style="text-align:right">Net Required</th>
-                    <th style="text-align:right">Last Pur Price</th>
-                    <th style="text-align:right">New Price</th>
-                    <th style="text-align:right">Old Stock Price Total</th>
-                    <th style="text-align:right">New Purchase Price Total</th>
-                    <th style="text-align:right">Total Price</th>
-                    <th style="text-align:right">Weighted Avg Price</th>
-                    <th style="text-align:right">Case</th>
-                    <th>UOM</th>`;
-                document.getElementById('procurementLegend').style.display = '';
-            } else {
-                head.innerHTML = `
-                    <th>Code</th>
-                    <th>Type</th>
-                    <th style="text-align:right">Required Qty</th>
-                    <th>UOM</th>`;
-                document.getElementById('procurementLegend').style.display = 'none';
-            }
+            const fmtQty   = v => (v == null || isNaN(v)) ? '—'
+                : Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+            const fmtPrice = v => (v == null || isNaN(v) || v === 0) ? '—'
+                : Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             document.getElementById('finalTableBody').innerHTML = finalData.map(row => {
-                const cls = codeToClass(row.code);
+                const cls  = codeToClass(row.code);
                 const uomTxt = row.uom
                     ? `<span style="color:var(--text-dim);font-family:var(--mono);font-size:0.76rem">${escHtml(row.uom)}</span>`
                     : '';
-                const reqFmt = row.qty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-                // Show the 2-char prefix as the "type" badge
-                const typeLabel = row.code.slice(0, 2).toUpperCase();
 
-                if (stockViewMode) {
-                    const stockEntry = closingStock[row.code] || {};
-                    const avail = parseFloat(stockEntry.qty ?? 0);
-                    const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
-                    const newPrc = parseFloat(newPrices[row.code] ?? 0);
+                // ── source values ──
+                const itemProj  = parseFloat(row.qty) || 0;                       // col 2
+                const stockEntry = closingStock[row.code] || {};
+                const availQty  = parseFloat(stockEntry.qty          ?? 0);       // col 3
+                const availPrc  = parseFloat(stockEntry.last_pur_prc ?? 0);       // col 4 (closing price)
+                const lpp       = availPrc;                                        // col 8 (same field)
+                const newPrc    = parseFloat(newPrices[row.code]     ?? 0);       // col 7
 
-                    const { oldTotal, newTotal, totalPrice, wavg, net, caseNum } =
-                        computeWeightedAvg(row.qty, avail, lastPurPrc, newPrc);
+                // ── computed columns ──
+                const stockVal  = availQty * availPrc;                            // col 5
+                const reqQty    = Math.max(0, itemProj - availQty);               // col 6
+                const newVal    = newPrc <= 0                                     // col 9
+                    ? reqQty * lpp
+                    : reqQty * newPrc;
+                const denom     = availQty + reqQty;
+                const wavg      = denom > 0 ? (newVal + stockVal) / denom : 0;   // col 10
 
-                    const isDeficit = net > 0;
-                    const netQty = net;
+                const needsBuy  = reqQty > 0;
 
-                    const availFmt = avail.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-                    const netFmt = netQty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-                    const netDisplay = isDeficit
-                        ? `<span style="font-size:0.7rem;margin-right:2px">▲</span>${netFmt}`
-                        : `<span style="font-size:0.7rem;margin-right:2px">✓</span>${netFmt}`;
-
-                    const fmtPrice = v => (v === 0 || isNaN(v)) ? '—' : v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-                    return `<tr class="${isDeficit ? 'row-deficit' : ''}">` +
-                        `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
-                        `<td><span class="code-badge ${cls}">${typeLabel}</span></td>` +
-                        `<td class="num">${reqFmt}</td>` +
-                        `<td class="stock-avail">${availFmt}</td>` +
-                        `<td class="stock-net ${isDeficit ? 'deficit' : 'surplus'}">${netDisplay}</td>` +
-                        `<td class="price-col">${fmtPrice(lastPurPrc)}</td>` +
-                        `<td class="price-col">${newPrc > 0 ? fmtPrice(newPrc) : '—'}</td>` +
-                        `<td class="price-col">${fmtPrice(oldTotal)}</td>` +
-                        `<td class="price-col">${fmtPrice(newTotal)}</td>` +
-                        `<td class="price-total">${fmtPrice(totalPrice)}</td>` +
-                        `<td class="wavg-col">${fmtPrice(wavg)}</td>` +
-                        `<td><span class="case-badge case-${caseNum}">C${caseNum}</span></td>` +
-                        `<td>${uomTxt}</td>` +
-                        `</tr>`;
-                } else {
-                    return `<tr>` +
-                        `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
-                        `<td><span class="code-badge ${cls}">${typeLabel}</span></td>` +
-                        `<td class="num">${reqFmt}</td>` +
-                        `<td>${uomTxt}</td>` +
-                        `</tr>`;
-                }
+                return `<tr class="${needsBuy ? 'row-deficit' : ''}">` +
+                    `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
+                    `<td class="num">${fmtQty(itemProj)}</td>` +
+                    `<td class="stock-avail">${fmtQty(availQty)}</td>` +
+                    `<td class="price-col">${fmtPrice(availPrc)}</td>` +
+                    `<td class="price-col">${fmtPrice(stockVal)}</td>` +
+                    `<td class="stock-net ${needsBuy ? 'deficit' : 'surplus'}">` +
+                        (needsBuy
+                            ? `<span style="font-size:0.7rem;margin-right:2px">▲</span>${fmtQty(reqQty)}`
+                            : `<span style="font-size:0.7rem;margin-right:2px">✓</span>${fmtQty(reqQty)}`) +
+                    `</td>` +
+                    `<td class="price-col">${newPrc > 0 ? fmtPrice(newPrc) : '—'}</td>` +
+                    `<td class="price-col">${fmtPrice(lpp)}</td>` +
+                    `<td class="price-col">${fmtPrice(newVal)}</td>` +
+                    `<td class="wavg-col">${fmtPrice(wavg)}</td>` +
+                    `<td>${uomTxt}</td>` +
+                    `</tr>`;
             }).join('');
         }
+
 
         // ── BUILD FINAL RESULTS ───────────────────────────────────
         async function buildFinalResults(bom, pxConverted) {
@@ -2497,7 +2388,7 @@
 
             // Fetch closing stock + new prices after showing results (non-blocking)
             await Promise.all([fetchClosingStock(), fetchNewPrices()]);
-            if (stockViewMode) renderFinalTable();
+            renderFinalTable();  // re-render with stock + price data now loaded
 
             // Persist final Excel to backend (non-blocking — fire & forget)
             if (currentMetadataId) {
@@ -2579,43 +2470,41 @@
         // ── CSV DOWNLOAD ──────────────────────────────────────────
         function downloadFinalCSV() {
             if (!finalData.length) return;
-            let cols, rows;
-            if (stockViewMode) {
-                cols = ['Code', 'Type', 'Required Qty', 'Available Stock', 'Net Required',
-                    'Last Pur Price', 'New Price',
-                    'Old Stock Price Total', 'New Purchase Price Total',
-                    'Total Price', 'Weighted Avg Price', 'Case', 'UOM'];
-                rows = finalData.map(r => {
-                    const stockEntry = closingStock[r.code] || {};
-                    const avail = parseFloat(stockEntry.qty ?? 0);
-                    const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
-                    const newPrc = parseFloat(newPrices[r.code] ?? 0);
-                    const { oldTotal, newTotal, totalPrice, wavg, net, caseNum } =
-                        computeWeightedAvg(r.qty, avail, lastPurPrc, newPrc);
-                    const safeUom = (r.uom || '').replace(/"/g, '""');
-                    return [
-                        `"${r.code}"`,
-                        `"${r.code.slice(0, 2).toUpperCase()}"`,
-                        r.qty.toFixed(4),
-                        avail.toFixed(4),
-                        net.toFixed(4),
-                        lastPurPrc.toFixed(2),
-                        newPrc.toFixed(2),
-                        oldTotal.toFixed(2),
-                        newTotal.toFixed(2),
-                        totalPrice.toFixed(2),
-                        wavg.toFixed(2),
-                        `"C${caseNum}"`,
-                        `"${safeUom}"`
-                    ].join(',');
-                });
-            } else {
-                cols = ['Code', 'Type', 'Required Qty', 'UOM'];
-                rows = finalData.map(r => {
-                    const safeUom = (r.uom || '').replace(/"/g, '""');
-                    return [`"${r.code}"`, `"${r.code.slice(0, 2).toUpperCase()}"`, r.qty.toFixed(4), `"${safeUom}"`].join(',');
-                });
-            }
+
+            const cols = [
+                'Item Code', 'Item Projection', 'Avail Stock Qty',
+                'Avail Stock Price', 'Stock Value', 'Required Qty',
+                'New Price', 'Last Purchase Price', 'New Value', 'Weighted Avg', 'UOM'
+            ];
+
+            const rows = finalData.map(r => {
+                const itemProj  = parseFloat(r.qty) || 0;
+                const stockEntry = closingStock[r.code] || {};
+                const availQty  = parseFloat(stockEntry.qty          ?? 0);
+                const availPrc  = parseFloat(stockEntry.last_pur_prc ?? 0);
+                const lpp       = availPrc;
+                const newPrc    = parseFloat(newPrices[r.code]       ?? 0);
+                const stockVal  = availQty * availPrc;
+                const reqQty    = Math.max(0, itemProj - availQty);
+                const newVal    = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
+                const denom     = availQty + reqQty;
+                const wavg      = denom > 0 ? (newVal + stockVal) / denom : 0;
+                const safeUom   = (r.uom || '').replace(/"/g, '""');
+                return [
+                    `"${r.code}"`,
+                    itemProj.toFixed(4),
+                    availQty.toFixed(4),
+                    availPrc.toFixed(2),
+                    stockVal.toFixed(2),
+                    reqQty.toFixed(4),
+                    newPrc.toFixed(2),
+                    lpp.toFixed(2),
+                    newVal.toFixed(2),
+                    wavg.toFixed(2),
+                    `"${safeUom}"`
+                ].join(',');
+            });
+
             const lines = [cols.map(c => `"${c}"`).join(','), ...rows];
             const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
             const a = document.createElement('a');
@@ -2623,6 +2512,7 @@
             a.download = `procurement_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
         }
+
 
         function downloadConsolidatedBomCSV() {
             if (!bomData.length) return;

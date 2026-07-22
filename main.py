@@ -179,7 +179,18 @@ async def upload_excel(
 
     try:
         json_payload = services.process_file(file_location)
-        results = services.run_query(json_payload, db)
+
+        # --- Apply conversion factor per FG before BOM explosion ---
+        converted_payload, conversion_info = services.apply_fg_conversions(json_payload, db)
+        results = services.run_query(converted_payload, db)
+
+        # Stamp each BOM row with the per-FG conversion metadata
+        for row in results:
+            fg = row.get('Finish Good', '')
+            info = conversion_info.get(fg, {})
+            row['Uploaded_Qty']      = info.get('Uploaded_Qty', None)
+            row['Conversion_Factor'] = info.get('Conversion_Factor', 1.0)
+            row['Converted_Qty']     = info.get('Converted_Qty', None)
 
         px_items = services.extract_px_items(results)
         print('Extracted PX items')
@@ -253,7 +264,18 @@ async def get_bom_only(
 
     try:
         json_payload = services.process_file(file_location)
-        results = services.run_query(json_payload, db)
+
+        # --- Apply conversion factor per FG before BOM explosion ---
+        converted_payload, conversion_info = services.apply_fg_conversions(json_payload, db)
+        results = services.run_query(converted_payload, db)
+
+        # Stamp each BOM row with the per-FG conversion metadata
+        for row in results:
+            fg = row.get('Finish Good', '')
+            info = conversion_info.get(fg, {})
+            row['Uploaded_Qty']      = info.get('Uploaded_Qty', None)
+            row['Conversion_Factor'] = info.get('Conversion_Factor', 1.0)
+            row['Converted_Qty']     = info.get('Converted_Qty', None)
 
         IST = timezone(timedelta(hours=5, minutes=30))
         now_ist = datetime.now(IST)
@@ -503,11 +525,13 @@ def closing_stock(
 @app.post('/upload_price_excel')
 async def upload_price_excel(
     file: UploadFile = File(...),
-    current_user: str = Depends(auth.get_current_admin_for_working)
+    current_user: str = Depends(auth.get_current_admin_for_working),
+    db_admin: Session = Depends(get_db_admin)
 ):
     """
     Admin-only. Upload a monthly price Excel with columns [ItemCode, Price].
-    The prices are stored in-memory and used in the Stock View pricing columns.
+    Prices are persisted to the Postgres `price_list` table (full replace per upload)
+    so they survive server restarts and can be audited.
     """
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in ['.xlsx', '.xls']:
@@ -524,18 +548,41 @@ async def upload_price_excel(
         shutil.copyfileobj(file.file, f)
 
     try:
-        price_dict = services.load_new_prices_from_excel(file_location)
-        return {'status': 'ok', 'items_loaded': len(price_dict)}
+        uploader_email = current_user.email if hasattr(current_user, 'email') else str(current_user)
+        count = services.save_price_list_to_db(file_location, uploader_email, db_admin)
+        return {'status': 'ok', 'items_loaded': count, 'uploaded_by': uploader_email}
     except Exception as e:
         raise HTTPException(400, detail=f'Error loading price Excel: {e}')
 
 
 @app.get('/new_prices')
 def get_new_prices(
-    current_user: str = Depends(auth.get_current_user)
+    current_user: str = Depends(auth.get_current_user),
+    db_admin: Session = Depends(get_db_admin)
 ):
-    """Returns the currently loaded monthly new-price dict: {ItemCode: price}."""
-    return services.get_new_prices()
+    """Returns the active price list from Postgres as {ItemCode: price}."""
+    return services.get_price_list_from_db(db_admin)
+
+
+@app.get('/price_list_table')
+def get_price_list_table(
+    current_user=Depends(auth.get_current_admin_for_working),
+    db_admin: Session = Depends(get_db_admin)
+):
+    """
+    Admin-only. Returns the active price list as a list of row objects
+    for display in the admin portal table.
+    """
+    rows = db_admin.query(models.PriceList).order_by(models.PriceList.item_code).all()
+    return [
+        {
+            'item_code':   r.item_code,
+            'price':       r.price,
+            'uploaded_by': r.uploaded_by or '—',
+            'uploaded_at': r.uploaded_at.strftime('%d %b %Y, %H:%M') if r.uploaded_at else '—',
+        }
+        for r in rows
+    ]
 
 
 # @app.post('/run_MD_query')

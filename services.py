@@ -430,8 +430,7 @@ def run_query(json_payload: str, db: Session):
         END AS [Item_Type],
         CAST(bx.qty_per_fg AS DECIMAL(18,6)) AS [Item Projection],
         itm.InvntryUom AS [Inventory_UOM],
-        itb.ItmsGrpNam AS [Item Group],
-        CONVERT(NUMERIC(19,2), 1.00) AS [Convertion Factor]
+        itb.ItmsGrpNam AS [Item Group]
         INTO #BomResult
         FROM BOM_Explosion bx
         INNER JOIN OITM itm ON itm.ItemCode = bx.child_item
@@ -439,80 +438,6 @@ def run_query(json_payload: str, db: Session):
         WHERE bx.bom_level > 0
         OPTION (MAXRECURSION 100);
 
-        -- ================================================================
-        -- Conversion factor logic
-        -- The CF belongs to the FINISH GOOD only and is used exclusively
-        -- to scale Formula Item quantities (which are defined per-batch-weight)
-        -- to per-FG-unit quantities.
-        --
-        -- BOM Items (PK, LB, RM sub-items, etc.) have their U_QTY already
-        -- expressed per-FG-unit in [@C_BOMD], so they must NOT receive any
-        -- additional CF multiplication.
-        -- ================================================================
-
-        -- Step 1: Lookup conversion factor keyed on [Finish Good] (root FG only).
-        -- GROUP BY + MAX makes this deterministic when an FG has multiple UOM
-        -- entries in [@C_ITMUOM] (e.g. a G->KG weight entry AND a NO->CTN
-        -- piece-count entry). Previously SELECT DISTINCT returned multiple rows
-        -- per FG, causing a non-deterministic UPDATE that could apply a tiny
-        -- weight-based factor (e.g. 0.001) to PK/LB items -> near-zero results.
-        UPDATE t
-        SET [Convertion Factor] = ISNULL(cd1.U_CONFACTR, 1)
-        FROM #BomResult t
-        INNER JOIN
-        (
-            SELECT ch.U_ITNO, MAX(ISNULL(cd.U_CONFACTR, 1)) AS U_CONFACTR
-            FROM [@C_ITMSTR] ch
-            INNER JOIN [@C_ITMUOM] cd ON cd.DocEntry = ch.DocEntry
-            WHERE cd.U_TOUOM <> ''
-            GROUP BY ch.U_ITNO
-        ) cd1 ON t.[Finish Good] = cd1.U_ITNO;
-
-        -- Step 2: Safety net — if CF is still 0 after Step 1, reset to 1.
-        UPDATE t
-        SET [Convertion Factor] = 1
-        FROM #BomResult t
-        WHERE [Convertion Factor] = 0.00;
-
-        -- Step 3: Apply CF only to Formula Items.
-        --   BOM Items (PK, LB, intermediate components): U_QTY in [@C_BOMD] is
-        --   already defined per-FG-output-unit, so NO additional factor is needed.
-        --   Applying CF to them was causing PK/LB to show ~0 when the FG had a
-        --   weight-based UOM entry (e.g. U_CONFACTR=0.001 for G->KG).
-        --
-        --   Formula Items: ingredients are defined per-batch-weight; CF scales
-        --   them to per-FG-output-unit correctly.
-        UPDATE t
-        SET [Item Projection] =
-            CASE
-                WHEN [Item_Type] = 'Formula Item'
-                THEN [Item Projection] * [Convertion Factor]
-                ELSE [Item Projection]  -- BOM Items: keep qty as-is
-            END
-        FROM #BomResult t;
-
-        -- ================================================================
-        -- Step 4: UOM Normalization to KG
-        -- ================================================================
-        UPDATE t
-        SET [Item Projection] =
-            CASE [Inventory_UOM]
-                WHEN 'G'  THEN [Item Projection] / 1000.0
-                WHEN 'MG' THEN [Item Projection] / 1000000.0
-                WHEN 'ML' THEN [Item Projection] / 1000.0
-                WHEN 'L'  THEN [Item Projection] * 1.0
-                WHEN 'NO' THEN [Item Projection]
-                ELSE [Item Projection]
-            END,
-        [Inventory_UOM] =
-            CASE [Inventory_UOM]
-                WHEN 'G'  THEN 'KG'
-                WHEN 'MG' THEN 'KG'
-                WHEN 'ML' THEN 'KG'
-                WHEN 'L'  THEN 'KG'
-                ELSE [Inventory_UOM]
-            END
-        FROM #BomResult t;
 
         -- ================================================================
         -- Final SELECT
@@ -814,6 +739,91 @@ def process_file(filepath):
     payload = json.dumps(json_payload_list)
     return payload.replace("'", "''")
 
+
+def fetch_fg_conversion_factors(fg_codes: list, db: Session) -> dict:
+    """
+    For each FG code, look up the conversion factor from [@C_ITMSTR] / [@C_ITMUOM].
+    Returns {fg_code: conversion_factor} — defaults to 1.0 if no entry is found.
+
+    The factor is pulled as MAX(U_CONFACTR) per FG so that multiple UOM rows
+    (e.g. a weight entry AND a piece-count entry) collapse to one deterministic value.
+    """
+    if not fg_codes:
+        return {}
+
+    raw_conn = db.connection().connection
+    cursor = raw_conn.cursor()
+
+    placeholders = ', '.join(
+        f"N'{code.replace(chr(39), chr(39)*2)}'" for code in fg_codes
+    )
+
+    sql = f"""
+        SELECT ch.U_ITNO,
+               MAX(ISNULL(cd.U_CONFACTR, 1)) AS U_CONFACTR
+        FROM   [@C_ITMSTR] ch
+        INNER JOIN [@C_ITMUOM] cd ON cd.DocEntry = ch.DocEntry
+        WHERE  ch.U_ITNO IN ({placeholders})
+          AND  cd.U_TOUOM <> ''
+        GROUP BY ch.U_ITNO
+    """
+
+    try:
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+
+    result = {}
+    for row in rows:
+        fg_code, cf = row[0], row[1]
+        result[fg_code] = float(cf) if cf and float(cf) != 0 else 1.0
+
+    return result
+
+
+def apply_fg_conversions(json_payload: str, db: Session):
+    """
+    Looks up the conversion factor for every FG item in the payload,
+    multiplies FG_Qty by that factor, and returns:
+
+      converted_payload (str) : JSON string with the converted qty — pass
+                                this straight to run_query().
+      conversion_info   (dict): keyed by FG_Code, each value is a dict:
+                                  {
+                                    'Uploaded_Qty'      : float,  # qty from Excel
+                                    'Conversion_Factor' : float,  # CF from SAP (1.0 if none)
+                                    'Converted_Qty'     : float   # Uploaded_Qty * CF
+                                  }
+
+    Use conversion_info to annotate the BOM result rows returned by run_query().
+    """
+    import json as _json
+
+    items = _json.loads(json_payload)          # safe — single-quotes are fine in JSON strings
+    fg_codes = [item['FG_Code'] for item in items]
+    cf_map = fetch_fg_conversion_factors(fg_codes, db)
+
+    conversion_info: dict = {}
+    converted_items: list = []
+
+    for item in items:
+        fg_code = item['FG_Code']
+        uploaded_qty = float(item['FG_Qty'])
+        cf = cf_map.get(fg_code, 1.0)
+        converted_qty = round(uploaded_qty * cf, 6)
+
+        conversion_info[fg_code] = {
+            'Uploaded_Qty':       uploaded_qty,
+            'Conversion_Factor':  cf,
+            'Converted_Qty':      converted_qty,
+        }
+        converted_items.append({'FG_Code': fg_code, 'FG_Qty': converted_qty})
+
+    converted_payload = _json.dumps(converted_items)
+    return converted_payload, conversion_info
+
+
 def generate_production_batch(prefix="BAT"):
    
     date_str = datetime.now().strftime("%Y%m%d-%H%M")
@@ -982,35 +992,59 @@ def get_closing_stock(db: Session):
     return stock_dict
 
 
-# ── IN-MEMORY MONTHLY PRICE STORE ─────────────────────────────────────────────
-# Holds the latest price Excel uploaded by admin: { ItemCode (str): price (float) }
-_monthly_price_store: dict = {}
+# ── PRICE LIST — POSTGRES-BACKED ──────────────────────────────────────────────
 
+def save_price_list_to_db(filepath: str, uploaded_by: str, db_admin) -> int:
+    """
+    Parse the price-list Excel (required columns: ItemCode, Price).
+    Truncates the `price_list` table and inserts a fresh row per item so the
+    table always reflects the latest upload. Returns the number of rows saved.
 
-def load_new_prices_from_excel(filepath: str) -> dict:
+    Parameters
+    ----------
+    filepath    : path to the uploaded .xlsx file
+    uploaded_by : username of the admin who uploaded (for audit)
+    db_admin    : SQLAlchemy Session bound to the Postgres admin DB
     """
-    Parse the monthly price Excel (columns: ItemCode, Price).
-    Updates the in-memory store and returns the new price dict.
-    """
-    global _monthly_price_store
+    import models as _models
+
     df = pd.read_excel(filepath, engine='openpyxl')
     df.columns = [c.strip() for c in df.columns]
-    print(df.columns)
 
     if 'ItemCode' not in df.columns or 'Price' not in df.columns:
         raise ValueError("Price Excel must have columns: ItemCode, Price")
 
     df = df.dropna(subset=['ItemCode', 'Price'])
     df['ItemCode'] = df['ItemCode'].astype(str).str.strip()
-    df['Price'] = pd.to_numeric(df['Price'], errors='coerce').fillna(0.0)
+    df['Price']    = pd.to_numeric(df['Price'], errors='coerce').fillna(0.0)
 
-    _monthly_price_store = dict(zip(df['ItemCode'], df['Price'].astype(float)))
-    return _monthly_price_store
+    now = datetime.utcnow()
+
+    # Full replace: delete all then bulk insert
+    db_admin.query(_models.PriceList).delete()
+    db_admin.bulk_save_objects([
+        _models.PriceList(
+            item_code   = row['ItemCode'],
+            price       = float(row['Price']),
+            uploaded_by = uploaded_by,
+            uploaded_at = now,
+        )
+        for _, row in df.iterrows()
+    ])
+    db_admin.commit()
+    return len(df)
 
 
-def get_new_prices() -> dict:
-    """Returns the current in-memory monthly price store."""
-    return _monthly_price_store
+def get_price_list_from_db(db_admin) -> dict:
+    """
+    Returns the active price list as {item_code: price} from Postgres.
+    Returns an empty dict if no price list has been uploaded yet.
+    """
+    import models as _models
+    rows = db_admin.query(_models.PriceList.item_code, _models.PriceList.price).all()
+    return {row.item_code: float(row.price) for row in rows}
+
+
 
 
 def run_rf_explosion(rf_items: list[dict], db: Session) -> list[dict]:

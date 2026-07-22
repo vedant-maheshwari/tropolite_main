@@ -936,6 +936,18 @@
         .price-status.err {
             color: var(--crimson);
         }
+
+        .price-list-table-wrap {
+            margin-top: 2rem;
+            padding-top: 1.75rem;
+            border-top: 1px solid var(--border);
+            animation: fadeIn 0.25s ease;
+        }
+
+        #priceListSearch:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 2px rgba(139,92,246,0.18);
+        }
     </style>
 </head>
 
@@ -1107,9 +1119,8 @@
                         <h2>Monthly Price List Upload</h2>
                         <p class="sub">
                             Upload an Excel file with columns <strong>ItemCode</strong> and <strong>Price</strong>.<br>
-                            The "New Price" column in the procurement Stock View will use these prices for deficit
-                            quantities.
-                            Upload fresh each month — prices are held in-memory until the server restarts.
+                            Prices are saved to the database and persist across server restarts.
+                            Each upload <strong>replaces</strong> the entire price list.
                         </p>
 
                         <div class="price-upload-zone" id="priceDropzone">
@@ -1135,6 +1146,39 @@
                             </svg>
                             Upload Price List
                         </button>
+                    </div>
+
+                    <!-- ── PRICE LIST TABLE ────────────────────────── -->
+                    <div class="price-list-table-wrap" id="priceListTableWrap" style="display:none">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem">
+                            <div style="display:flex;align-items:center;gap:0.75rem">
+                                <h3 style="margin:0;font-size:1rem;font-weight:600;color:var(--text)">Loaded Price List</h3>
+                                <span class="price-list-badge" id="priceListBadge" style="
+                                    background:rgba(139,92,246,0.15);color:#a78bfa;
+                                    font-size:0.72rem;font-weight:600;padding:2px 9px;
+                                    border-radius:99px;font-family:var(--mono)">0 items</span>
+                            </div>
+                            <input id="priceListSearch" type="text" placeholder="Filter by item code…"
+                                oninput="filterPriceList()"
+                                style="padding:0.4rem 0.75rem;border-radius:6px;
+                                       border:1px solid var(--border);background:var(--surface);
+                                       color:var(--text);font-size:0.82rem;width:220px;outline:none">
+                        </div>
+                        <div class="data-table-container" style="max-height:460px;overflow-y:auto">
+                            <table class="data-table" id="priceListTable">
+                                <thead>
+                                    <tr>
+                                        <th>Item Code</th>
+                                        <th style="text-align:right">Price (₹)</th>
+                                        <th>Uploaded By</th>
+                                        <th>Uploaded At</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="priceListTbody">
+                                    <tr><td colspan="4" class="table-empty">No price list uploaded yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -1325,6 +1369,51 @@
             }
             if (tabId === 'users') loadUsers();
             else if (tabId === 'logs') loadLogs();
+            else if (tabId === 'prices') loadPriceList();
+        }
+
+        // ── PRICE LIST ─────────────────────────────────────────────
+        let _priceListCache = [];  // for client-side filtering
+
+        async function loadPriceList() {
+            const wrap = document.getElementById('priceListTableWrap');
+            const tb   = document.getElementById('priceListTbody');
+            if (!adminToken) return;
+            tb.innerHTML = `<tr><td colspan="4" class="table-empty"><span class="spinner" style="border-top-color:#8b5cf6;vertical-align:middle;margin-right:6px;"></span>Loading…</td></tr>`;
+            wrap.style.display = '';
+            try {
+                const rows = await apiFetch(`${API_BASE}/price_list_table`);
+                if (!rows) return;
+                _priceListCache = rows;
+                renderPriceListTable(rows);
+            } catch (err) {
+                tb.innerHTML = `<tr><td colspan="4" class="table-empty" style="color:var(--crimson)">Could not load price list: ${escHtml(err.message)}</td></tr>`;
+            }
+        }
+
+        function renderPriceListTable(rows) {
+            const tb    = document.getElementById('priceListTbody');
+            const badge = document.getElementById('priceListBadge');
+            badge.textContent = `${rows.length} item${rows.length !== 1 ? 's' : ''}`;
+            if (!rows.length) {
+                tb.innerHTML = `<tr><td colspan="4" class="table-empty">No price list uploaded yet.</td></tr>`;
+                return;
+            }
+            tb.innerHTML = rows.map(r => `
+                <tr>
+                    <td style="font-family:var(--mono);font-size:0.82rem">${escHtml(r.item_code)}</td>
+                    <td style="text-align:right;font-family:var(--mono);font-size:0.82rem">₹${Number(r.price).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:4})}</td>
+                    <td style="font-size:0.8rem;color:var(--text-dim)">${escHtml(r.uploaded_by)}</td>
+                    <td style="font-size:0.8rem;color:var(--text-dim)">${escHtml(r.uploaded_at)}</td>
+                </tr>`).join('');
+        }
+
+        function filterPriceList() {
+            const q = (document.getElementById('priceListSearch').value || '').toLowerCase();
+            const filtered = q
+                ? _priceListCache.filter(r => r.item_code.toLowerCase().includes(q))
+                : _priceListCache;
+            renderPriceListTable(filtered);
         }
 
         // ── USERS ─────────────────────────────────────────────────
