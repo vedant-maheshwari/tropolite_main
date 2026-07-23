@@ -46,17 +46,17 @@ def converter(request_data, excel_passowrd):
             
             if md_code in md_to_rm_mapping:
                 result = md_to_rm_mapping[md_code]
-                result_list.append({result: item.get("Qty")})
+                result_list.append({result: item.get("Qty"), "_md_code": md_code})
             elif str(md_code).replace(".0", "") in md_to_rm_mapping_str:
                 result = md_to_rm_mapping_str[str(md_code).replace(".0", "")]
-                result_list.append({result: item.get("Qty")})
+                result_list.append({result: item.get("Qty"), "_md_code": md_code})
             else:
-                result_list.append({item.get('MD_code'): item.get('Qty')})
+                result_list.append({item.get('MD_code'): item.get('Qty'), "_md_code": md_code})
                 
     except Exception as e:
         print(f"Error reading Excel file: {e}")
         for item in items:
-            result_list.append({item.get('MD_code'): item.get('Qty')})
+            result_list.append({item.get('MD_code'): item.get('Qty'), "_md_code": item.get("MD_code")})
 
     return result_list
 

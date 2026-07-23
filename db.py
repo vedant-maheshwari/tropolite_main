@@ -28,18 +28,19 @@ if not DATABASE_ADMIN_URL:
 engine_admin = create_engine(DATABASE_ADMIN_URL)
 SessionLocal_admin = sessionmaker(autoflush=False, autocommit=False, bind=engine_admin)
 
-# try:
-#     with engine_admin.connect() as conn:
-#         print("Connected")
-
-#         db_name = conn.execute(
-#             text("SELECT DB_NAME()")
-#         ).scalar()
-
-#         print("Database:", db_name)
-
-# except Exception as e:
-#     print(e)
+try:
+    with engine_admin.connect() as conn:
+        print("Connected to Admin DB")
+        # Ensure permissions column exists for tab-based access
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN permissions VARCHAR(500) DEFAULT 'final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price'"))
+            conn.commit()
+            print("Added permissions column to users table.")
+        except Exception as e:
+            # Column likely already exists
+            conn.rollback()
+except Exception as e:
+    print(f"Admin DB Connection Error: {e}")
 
 def get_db_admin():
     db_admin = SessionLocal_admin()

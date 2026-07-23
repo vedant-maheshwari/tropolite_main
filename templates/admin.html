@@ -211,7 +211,7 @@
             letter-spacing: 0.07em;
         }
 
-        .field input,
+        .field input:not([type="checkbox"]),
         .field select {
             width: 100%;
             padding: 0.6rem 0.85rem;
@@ -227,8 +227,14 @@
             -moz-appearance: none;
             appearance: none;
         }
+        
+        .field input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+            width: auto;
+        }
 
-        .field input:focus,
+        .field input:not([type="checkbox"]):focus,
         .field select:focus {
             border-color: var(--crimson);
             box-shadow: 0 0 0 3px rgba(147, 47, 49, 0.1);
@@ -946,7 +952,7 @@
 
         #priceListSearch:focus {
             border-color: #8b5cf6;
-            box-shadow: 0 0 0 2px rgba(139,92,246,0.18);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.18);
         }
     </style>
 </head>
@@ -1069,6 +1075,7 @@
                                     <th>ID</th>
                                     <th>Email Address</th>
                                     <th>Role</th>
+                                    <th>Permissions</th>
                                     <th style="width:80px">Actions</th>
                                 </tr>
                             </thead>
@@ -1150,17 +1157,18 @@
 
                     <!-- ── PRICE LIST TABLE ────────────────────────── -->
                     <div class="price-list-table-wrap" id="priceListTableWrap" style="display:none">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem">
+                        <div
+                            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem">
                             <div style="display:flex;align-items:center;gap:0.75rem">
-                                <h3 style="margin:0;font-size:1rem;font-weight:600;color:var(--text)">Loaded Price List</h3>
+                                <h3 style="margin:0;font-size:1rem;font-weight:600;color:var(--text)">Loaded Price List
+                                </h3>
                                 <span class="price-list-badge" id="priceListBadge" style="
                                     background:rgba(139,92,246,0.15);color:#a78bfa;
                                     font-size:0.72rem;font-weight:600;padding:2px 9px;
                                     border-radius:99px;font-family:var(--mono)">0 items</span>
                             </div>
                             <input id="priceListSearch" type="text" placeholder="Filter by item code…"
-                                oninput="filterPriceList()"
-                                style="padding:0.4rem 0.75rem;border-radius:6px;
+                                oninput="filterPriceList()" style="padding:0.4rem 0.75rem;border-radius:6px;
                                        border:1px solid var(--border);background:var(--surface);
                                        color:var(--text);font-size:0.82rem;width:220px;outline:none">
                         </div>
@@ -1175,7 +1183,9 @@
                                     </tr>
                                 </thead>
                                 <tbody id="priceListTbody">
-                                    <tr><td colspan="4" class="table-empty">No price list uploaded yet.</td></tr>
+                                    <tr>
+                                        <td colspan="4" class="table-empty">No price list uploaded yet.</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1215,6 +1225,27 @@
                             style="margin-top:0.35rem; font-size:0.7rem; color:var(--text-dim); font-family:var(--mono); display:none;">
                             Leave blank to keep existing password.
                         </p>
+                    </div>
+                    <div class="field">
+                        <label>Allowed Tabs</label>
+                        <div style="display:flex; flex-direction:column; gap:0.4rem; margin-top:0.3rem;"
+                            id="modalPermissionsGroup">
+                            <label
+                                style="display:flex; align-items:center; gap:0.4rem; text-transform:none; font-weight:normal; letter-spacing:normal;"><input
+                                    type="checkbox" value="final_order"> Final Order List</label>
+                            <label
+                                style="display:flex; align-items:center; gap:0.4rem; text-transform:none; font-weight:normal; letter-spacing:normal;"><input
+                                    type="checkbox" value="per_fg_bom"> Per-FG BOM Table</label>
+                            <label
+                                style="display:flex; align-items:center; gap:0.4rem; text-transform:none; font-weight:normal; letter-spacing:normal;"><input
+                                    type="checkbox" value="per_fg_cost"> Per FG Cost (Excl PX)</label>
+                            <label
+                                style="display:flex; align-items:center; gap:0.4rem; text-transform:none; font-weight:normal; letter-spacing:normal;"><input
+                                    type="checkbox" value="px_item_cost"> PX Item Cost</label>
+                            <label
+                                style="display:flex; align-items:center; gap:0.4rem; text-transform:none; font-weight:normal; letter-spacing:normal;"><input
+                                    type="checkbox" value="final_fg_price"> Final Per FG Price</label>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -1377,7 +1408,7 @@
 
         async function loadPriceList() {
             const wrap = document.getElementById('priceListTableWrap');
-            const tb   = document.getElementById('priceListTbody');
+            const tb = document.getElementById('priceListTbody');
             if (!adminToken) return;
             tb.innerHTML = `<tr><td colspan="4" class="table-empty"><span class="spinner" style="border-top-color:#8b5cf6;vertical-align:middle;margin-right:6px;"></span>Loading…</td></tr>`;
             wrap.style.display = '';
@@ -1392,7 +1423,7 @@
         }
 
         function renderPriceListTable(rows) {
-            const tb    = document.getElementById('priceListTbody');
+            const tb = document.getElementById('priceListTbody');
             const badge = document.getElementById('priceListBadge');
             badge.textContent = `${rows.length} item${rows.length !== 1 ? 's' : ''}`;
             if (!rows.length) {
@@ -1402,7 +1433,7 @@
             tb.innerHTML = rows.map(r => `
                 <tr>
                     <td style="font-family:var(--mono);font-size:0.82rem">${escHtml(r.item_code)}</td>
-                    <td style="text-align:right;font-family:var(--mono);font-size:0.82rem">₹${Number(r.price).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:4})}</td>
+                    <td style="text-align:right;font-family:var(--mono);font-size:0.82rem">₹${Number(r.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
                     <td style="font-size:0.8rem;color:var(--text-dim)">${escHtml(r.uploaded_by)}</td>
                     <td style="font-size:0.8rem;color:var(--text-dim)">${escHtml(r.uploaded_at)}</td>
                 </tr>`).join('');
@@ -1433,21 +1464,27 @@
         function renderUsersTable(users) {
             const tb = document.getElementById('usersTableBody');
             if (!users.length) {
-                tb.innerHTML = `<tr><td colspan="4" class="table-empty">No users found.</td></tr>`;
+                tb.innerHTML = `<tr><td colspan="5" class="table-empty">No users found.</td></tr>`;
                 return;
             }
             tb.innerHTML = users.map(user => {
                 const roleBadge = parseInt(user.role) === 1
                     ? `<span class="badge badge-admin">Admin</span>`
                     : `<span class="badge badge-user">User</span>`;
+
+                let perms = user.permissions || 'final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price';
+                const count = perms.split(',').filter(Boolean).length;
+                const permsDisplay = `<span style="font-size:0.75rem; color:var(--text-dim);">${count} tab(s)</span>`;
+
                 return `
                     <tr>
                         <td style="font-family:var(--mono);font-size:0.72rem;color:var(--text-dim)">${user.id}</td>
                         <td style="font-weight:500">${escHtml(user.email)}</td>
                         <td>${roleBadge}</td>
+                        <td>${permsDisplay}</td>
                         <td>
                             <div class="actions-wrap">
-                                <button class="btn-action" title="Edit" onclick="openUserModal(true,${user.id},'${escHtml(user.email)}',${user.role})">
+                                <button class="btn-action" title="Edit" onclick="openUserModal(true,${user.id},'${escHtml(user.email)}',${user.role},'${escHtml(perms)}')">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
@@ -1471,10 +1508,21 @@
         }
 
         // ── USER MODAL ─────────────────────────────────────────────
-        function openUserModal(isEdit, userId = null, email = '', role = 0) {
+        function openUserModal(isEdit, userId = null, email = '', role = 0, perms = '') {
             const modal = document.getElementById('userModal');
             const passInput = document.getElementById('modalUserPassword');
             document.getElementById('userForm').reset();
+
+            // Setup permissions checkboxes
+            const permCheckboxes = document.querySelectorAll('#modalPermissionsGroup input[type="checkbox"]');
+            if (isEdit) {
+                const allowed = perms ? perms.split(',') : [];
+                permCheckboxes.forEach(cb => cb.checked = allowed.includes(cb.value));
+            } else {
+                // Default all checked for new user
+                permCheckboxes.forEach(cb => cb.checked = true);
+            }
+
             modal.style.display = 'flex';
             if (isEdit) {
                 document.getElementById('modalTitle').textContent = 'Edit User';
@@ -1503,6 +1551,10 @@
             const email = document.getElementById('modalUserEmail').value.trim();
             const role = parseInt(document.getElementById('modalUserRole').value);
             const password = document.getElementById('modalUserPassword').value;
+
+            const permCheckboxes = document.querySelectorAll('#modalPermissionsGroup input[type="checkbox"]:checked');
+            const permissions = Array.from(permCheckboxes).map(cb => cb.value).join(',');
+
             const saveBtn = document.getElementById('saveUserBtn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = `<span class="spinner" style="border-top-color:white;border-color:rgba(255,255,255,0.3);border-top-color:white;"></span> Saving…`;
@@ -1512,14 +1564,14 @@
                     await apiFetch(`${API_BASE}/users/${userId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, role, password: password || null })
+                        body: JSON.stringify({ email, role, password: password || null, permissions })
                     });
                     showToast('User updated.', 'success');
                 } else {
                     await apiFetch(`${API_BASE}/register_user`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password, role })
+                        body: JSON.stringify({ email, password, role, permissions })
                     });
                     showToast('User created.', 'success');
                 }

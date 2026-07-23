@@ -917,7 +917,7 @@ OPTION (MAXRECURSION 100);
     for item in records:
         px_val = item.get('PX_Code')
         px_val = px_val.lower()
-        print(px_val)
+        # print(px_val)
         md_val = item.get('MD_Code')
         percentage = item.get('Formula_Percent')
         
@@ -936,7 +936,7 @@ def convert_px_to_md(px_codes : list[dict], conversion_dict):
         # final_list.extend(conversion_dict[px_code.get('Item_Code')])
         px_codes_lower = px_code.get('Item_Code')
         px_codes_lower = px_codes_lower.lower() if px_codes_lower else ''
-        print(f'px code to match : {px_codes_lower}')
+        # print(f'px code to match : {px_codes_lower}')
         if px_codes_lower in conversion_dict and conversion_dict[px_codes_lower]:
             for item in conversion_dict[px_codes_lower]:
                 final_list.append({'MD_code' : item.get('MD_code'),
@@ -1242,6 +1242,7 @@ def get_px_formula_costs(db: Session) -> dict:
     """
     query = text("""
     ;WITH FormulaExplosion AS (
+        -- Direct Formula Components
         SELECT
             BH.U_ITNO       AS PX_Code,
             F1.U_ITEMCODE   AS MD_Code,
@@ -1253,6 +1254,22 @@ def get_px_formula_costs(db: Session) -> dict:
         WHERE BH.U_STATUS = 'Active'
           AND FH.U_STATUS = 'Active'
           AND BH.U_ITNO LIKE 'PX%'
+
+        UNION ALL
+
+        -- Recursive Formula Expansion
+        SELECT
+            FE.PX_Code,
+            F1.U_ITEMCODE,
+            CAST(FE.Formula_Qty * (F1.U_QTY / NULLIF(FH.U_TLT, 0)) AS FLOAT),
+            FE.Level + 1
+        FROM FormulaExplosion FE
+        INNER JOIN [@C_BOMH] BH ON FE.MD_Code = BH.U_ITNO
+        INNER JOIN [@OFES] FH ON BH.U_FORMULA = FH.U_FCODE
+        INNER JOIN [@FES1] F1 ON FH.DocEntry = F1.DocEntry
+        WHERE BH.U_STATUS = 'Active'
+          AND FH.U_STATUS = 'Active'
+          AND FE.Level < 10
     )
     SELECT
         PX_Code,
@@ -1263,6 +1280,10 @@ def get_px_formula_costs(db: Session) -> dict:
             6
         ) AS Formula_Percent
     FROM FormulaExplosion
+    -- Only include leaf nodes (items that do not have their own formula)
+    WHERE MD_Code NOT IN (
+        SELECT U_ITNO FROM [@C_BOMH] WHERE U_STATUS = 'Active'
+    )
     ORDER BY PX_Code, MD_Code
     OPTION (MAXRECURSION 1000);
     """)

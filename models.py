@@ -10,6 +10,7 @@ class User(Base):
     role : Mapped[int] = mapped_column(nullable=False)
     email : Mapped[str] = mapped_column(String(300), nullable=False)
     password : Mapped[str] = mapped_column(String(300), nullable=False)
+    permissions : Mapped[str] = mapped_column(String(500), default='final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price')
 
 class FileUploadMetaData(Base):
     __tablename__ = 'file_upload_meta_data'

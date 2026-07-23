@@ -62,7 +62,7 @@ def create_user(user_info : schemas.register_user, current_user : str = Depends(
 @app.get('/users')
 def list_users(current_user: str = Depends(auth.get_current_admin_for_working), db: Session = Depends(get_db_admin)):
     users = db.query(models.User).order_by(models.User.id.asc()).all()
-    return [{"id": u.id, "email": u.email, "role": u.role} for u in users]
+    return [{"id": u.id, "email": u.email, "role": u.role, "permissions": getattr(u, 'permissions', 'final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price')} for u in users]
 
 @app.put('/users/{user_id}')
 def update_user(user_id: int, user_info: schemas.user_update, current_user: str = Depends(auth.get_current_admin_for_working), db: Session = Depends(get_db_admin)):
@@ -77,6 +77,7 @@ def update_user(user_id: int, user_info: schemas.user_update, current_user: str 
         
     user.email = user_info.email
     user.role = user_info.role
+    user.permissions = user_info.permissions
     if user_info.password:
         user.password = auth.hash_password(user_info.password)
         
@@ -140,12 +141,22 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db : Session = Depen
     }
 
 @app.get('/me')
-def get_me(current_user: str = Depends(auth.get_current_user)):
-    """Returns the logged-in user's username and role."""
-    user = auth.user_db.get(current_user)
+def get_me(current_user: str = Depends(auth.get_current_user), db: Session = Depends(get_db_admin)):
+    """Returns the logged-in user's username, role, and permissions."""
+    user = db.query(models.User).filter(models.User.email == current_user).first()
+    if user:
+        return {
+            'username': user.email,
+            'role': user.role,
+            'permissions': getattr(user, 'permissions', 'final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price')
+        }
+    
+    # Fallback to mock db (e.g., admin)
+    mock_user = auth.user_db.get(current_user)
     return {
         'username': current_user,
-        'role': user.get('role', 'user') if user else 'user'
+        'role': mock_user.get('role', 'user') if mock_user else 'user',
+        'permissions': 'final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price'
     }
 
 @app.post('/upload_excel')

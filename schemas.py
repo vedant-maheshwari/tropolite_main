@@ -4,11 +4,13 @@ class register_user(BaseModel):
     email : EmailStr
     password : str
     role : int
+    permissions : str = 'final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price'
 
 class user_update(BaseModel):
     email : EmailStr
     role : int
     password : str | None = None
+    permissions : str = 'final_order,per_fg_bom,per_fg_cost,px_item_cost,final_fg_price'
 
 class multi_id_input(BaseModel):
     ids : list

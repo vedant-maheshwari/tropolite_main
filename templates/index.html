@@ -1221,12 +1221,12 @@
                 </svg>
                 New Upload
             </button>
-            <button id="navFgCost" class="btn btn-ghost btn-sm" style="display:none" onclick="goToFgCost()">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button id="navDevMode" class="btn btn-ghost btn-sm" style="display:none" onclick="toggleGlobalDevMode()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 13h.01M13 13h.01M13 17h.01M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
-                Per-FG Cost
+                Dev Mode
             </button>
             <button id="navSignOut" class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button>
         </div>
@@ -1415,6 +1415,11 @@
             <div class="tab active" id="finalTabBtn" onclick="switchTab(this, 'finalTable')">Final Order List</div>
             <div class="tab" id="bomTabBtn" onclick="switchTab(this, 'bomTable')" style="display:none">Per-FG BOM Table
             </div>
+            <div class="tab" id="fgCostExclPxTabBtn" onclick="switchTab(this, 'fgCostExclPxTable')">Per FG Cost (Excl
+                PX)</div>
+            <div class="tab" id="pxItemCostTabBtn" onclick="switchTab(this, 'pxItemCostTable')">PX Item Cost</div>
+            <div class="tab" id="finalFgCostTabBtn" onclick="switchTab(this, 'finalFgCostTable')">Final Per FG Price
+            </div>
         </div>
 
         <div class="table-section active" id="finalTable">
@@ -1454,13 +1459,19 @@
                 </div>
                 <div class="formula-legend-body" id="procurementLegendBody">
                     <h4>Column Formulas</h4>
-                    <div class="fml">Stock Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= Available Stock Qty × Available stock Price per unit</div>
-                    <div class="fml">Required Qty&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= MAX(0, Item projection − Available Stock Qty)</div>
-                    <div class="fml">New Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= if New price ≤ 0 → Required Qty × Last purchase price, else Required Qty × New price</div>
-                    <div class="fml">Weighted Avg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (New Value + Stock Value) / (Available Stock Qty + Required Qty)</div>
+                    <div class="fml">Stock Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= Available Stock Qty ×
+                        Available stock Price per unit</div>
+                    <div class="fml">Required Qty&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= MAX(0, Item projection − Available
+                        Stock Qty)</div>
+                    <div class="fml">New Value&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= if New price ≤ 0 →
+                        Required Qty × Last purchase price, else Required Qty × New price</div>
+                    <div class="fml">Weighted Avg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (New Value + Stock Value) / (Available
+                        Stock Qty + Required Qty)</div>
                     <h4>Notes</h4>
-                    <div class="fml-note">• Available stock Price per unit is fetched from OINM closing valuation price (falling back to Last purchase price).</div>
-                    <div class="fml-note">• New price comes from the admin-uploaded price list (persisted in Postgres price_list table).</div>
+                    <div class="fml-note">• Available stock Price per unit is fetched from OINM closing valuation price
+                        (falling back to Last purchase price).</div>
+                    <div class="fml-note">• New price comes from the admin-uploaded price list (persisted in Postgres
+                        price_list table).</div>
                     <div class="fml-note">• Last purchase price comes directly from SAP OITM.LastPurPrc.</div>
                 </div>
             </div>
@@ -1481,6 +1492,58 @@
         </div>
 
         <!-- Per-FG BOM table ends above -->
+
+        <!-- New Tabs for Per FG Cost -->
+        <div class="table-section" id="fgCostExclPxTable">
+            <div id="fgCostExclPxContainer"></div>
+            <!-- Per-FG formula legend -->
+            <div class="formula-legend" id="perFgLegend">
+                <div class="formula-legend-toggle" onclick="toggleLegend('perFgLegendBody', this)">
+                    <span class="formula-legend-title">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Per-FG Pricing Methodology
+                    </span>
+                    <svg class="formula-legend-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+                <div class="formula-legend-body" id="perFgLegendBody">
+                    <h4>Overview</h4>
+                    <div class="fml-note">• WAP (Weighted Average Price) is calculated based on the <b>Total Aggregate
+                            Demand</b> across all FGs for accurate pricing.</div>
+                    <div class="fml-note">• The "Available Stock", "Stock Value", "Required Qty", and "New Value" shown
+                        here are the <b>Aggregate</b> values used to derive the WAP for that item.</div>
+                    <div class="fml-note">• "Cost for this FG" = WAP × Item Projection (for this specific FG).</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-section" id="pxItemCostTable">
+            <div id="pxItemCostContainer"></div>
+        </div>
+
+        <div class="table-section" id="finalFgCostTable">
+            <div class="table-outer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>FG Code</th>
+                            <th>FG Name</th>
+                            <th style="text-align:right">Projected Qty</th>
+                            <th style="text-align:right">Total Non-PX Cost (₹)</th>
+                            <th style="text-align:right">Total PX Cost (₹)</th>
+                            <th style="text-align:right">Total Material Cost (₹)</th>
+                            <th style="text-align:right">Per Unit Cost (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="finalFgCostTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
     </div><!-- end #resultsView -->
 
     <!-- ══════════════════════ PER-FG COST VIEW ══════════════════════ -->
@@ -1494,7 +1557,8 @@
             <div class="results-actions">
                 <button class="btn btn-ghost btn-sm" onclick="goToUpload()">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                     Go Home
                 </button>
@@ -1702,7 +1766,7 @@
         const fgCostView = document.getElementById('fgCostView');
         const topbar = document.getElementById('topbar');
         const navNewUpload = document.getElementById('navNewUpload');
-        const navFgCost = document.getElementById('navFgCost');
+        const navDevMode = document.getElementById('navDevMode');
 
         function showView(view) {
             [loginView, uploadView, waitingView, resultsView, fgCostView].forEach(v => v.classList.remove('active'));
@@ -1710,15 +1774,12 @@
             if (view === loginView) {
                 topbar.classList.remove('visible');
                 navNewUpload.style.display = 'none';
-                navFgCost.style.display = 'none';
+                navDevMode.style.display = 'none';
             } else {
                 topbar.classList.add('visible');
                 // New Upload button: show in results + waiting + fgCostView views
                 navNewUpload.style.display =
                     (view === resultsView || view === waitingView || view === fgCostView) ? 'inline-flex' : 'none';
-                // Per-FG Cost button: show in upload + results + waiting — hide only on fgCostView itself
-                navFgCost.style.display =
-                    (view === fgCostView) ? 'none' : 'inline-flex';
             }
         }
 
@@ -1737,6 +1798,44 @@
             }
         }
 
+        async function applyPermissions(token) {
+            try {
+                const res = await fetch(`${API_BASE}/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const perms = (data.permissions || '').split(',');
+
+                    const tabMap = {
+                        'final_order': 'finalTabBtn',
+                        'per_fg_bom': 'bomTabBtn',
+                        'per_fg_cost': 'fgCostExclPxTabBtn',
+                        'px_item_cost': 'pxItemCostTabBtn',
+                        'final_fg_price': 'finalFgCostTabBtn'
+                    };
+
+                    for (const [permKey, btnId] of Object.entries(tabMap)) {
+                        const btn = document.getElementById(btnId);
+                        if (btn) {
+                            if (!perms.includes(permKey)) {
+                                btn.style.display = 'none';
+                                btn.dataset.noPermission = 'true';
+                            } else {
+                                // For bomTabBtn, we also check devMode later, but for now just remove the dataset flag
+                                delete btn.dataset.noPermission;
+                                if (btnId !== 'bomTabBtn') {
+                                    btn.style.display = '';
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not fetch permissions', err);
+            }
+        }
+
         // ── INIT ──────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -1746,7 +1845,11 @@
                 console.warn('config.json not found, falling back to localhost:8000');
                 API_BASE = 'http://localhost:8000';
             }
-            if (localStorage.getItem('access_token')) showView(uploadView);
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                showView(uploadView);
+                applyPermissions(token);
+            }
             setStep(1);
         });
 
@@ -1754,7 +1857,9 @@
         document.getElementById('devModeToggle').addEventListener('change', e => {
             devMode = e.target.checked;
             const bomTabBtnEl = document.getElementById('bomTabBtn');
-            if (bomTabBtnEl) bomTabBtnEl.style.display = devMode ? '' : 'none';
+            if (bomTabBtnEl && !bomTabBtnEl.dataset.noPermission) {
+                bomTabBtnEl.style.display = devMode ? '' : 'none';
+            }
             if (devMode && bomData && bomData.length > 0) {
                 renderBomTables(bomData);
             }
@@ -1867,6 +1972,7 @@
                 if (!res.ok) throw new Error('Invalid credentials.');
                 const data = await res.json();
                 localStorage.setItem('access_token', data.access_token);
+                await applyPermissions(data.access_token);
                 showView(uploadView);
                 showToast('Signed in.', 'success');
             } catch (err) {
@@ -1987,7 +2093,10 @@
                 // Show only the Per-FG BOM table — skip the waiting/final flow
                 devMode = true;
                 document.getElementById('devModeToggle').checked = true;
-                document.getElementById('bomTabBtn').style.display = '';
+                const bomTabBtnEl = document.getElementById('bomTabBtn');
+                if (bomTabBtnEl && !bomTabBtnEl.dataset.noPermission) {
+                    bomTabBtnEl.style.display = '';
+                }
                 renderBomTables(bomData);
                 setStep(4);
                 showView(resultsView);
@@ -2183,7 +2292,7 @@
         // ── WEIGHTED AVG HELPER (used by Per-FG Cost Calculator) ──
         // NOTE: The procurement table no longer uses this — it has its own inline formulas.
         function computeWeightedAvg(procQty, avail, lastPurPrc, newPrc) {
-            const net       = Math.max(0, procQty - avail);
+            const net = Math.max(0, procQty - avail);
             const stockUsed = Math.min(avail, procQty);
             let oldTotal, newTotal, wavg, caseNum;
             if (avail >= procQty) {
@@ -2219,13 +2328,13 @@
                     <th>UOM</th>`;
             }
 
-            const fmtQty   = v => (v == null || isNaN(v)) ? '—'
+            const fmtQty = v => (v == null || isNaN(v)) ? '—'
                 : Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
             const fmtPrice = v => (v == null || isNaN(v) || v === 0) ? '—'
                 : Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             document.getElementById('finalTableBody').innerHTML = finalData.map(row => {
-                const cls  = codeToClass(row.code);
+                const cls = codeToClass(row.code);
                 const uomTxt = row.uom
                     ? `<span style="color:var(--text-dim);font-family:var(--mono);font-size:0.76rem">${escHtml(row.uom)}</span>`
                     : '';
@@ -2240,25 +2349,25 @@
                 };
 
                 // ── source values ──
-                const itemProj  = parseFloat(row.qty) || 0;                       // col 2
+                const itemProj = parseFloat(row.qty) || 0;                       // col 2
                 const stockEntry = lookupEntry(closingStock, row.code) || {};
-                const availQty  = parseFloat(stockEntry.qty ?? 0);                // col 3
+                const availQty = parseFloat(stockEntry.qty ?? 0);                // col 3
                 const closingPrcObj = parseFloat(stockEntry.closing_price);
                 const lastPurPrcObj = parseFloat(stockEntry.last_pur_prc || 0);
-                const availPrc  = (!isNaN(closingPrcObj) && closingPrcObj !== 0) ? closingPrcObj : lastPurPrcObj; // col 4 (Available stock Price per unit)
-                const lpp       = lastPurPrcObj;                                  // col 8 (Last purchase price)
-                const newPrc    = parseFloat(lookupEntry(newPrices, row.code) ?? 0); // col 7
+                const availPrc = (!isNaN(closingPrcObj) && closingPrcObj !== 0) ? closingPrcObj : lastPurPrcObj; // col 4 (Available stock Price per unit)
+                const lpp = lastPurPrcObj;                                  // col 8 (Last purchase price)
+                const newPrc = parseFloat(lookupEntry(newPrices, row.code) ?? 0); // col 7
 
                 // ── computed columns ──
-                const stockVal  = availQty * availPrc;                            // col 5
-                const reqQty    = Math.max(0, itemProj - availQty);               // col 6
-                const newVal    = newPrc <= 0                                     // col 9
+                const stockVal = availQty * availPrc;                            // col 5
+                const reqQty = Math.max(0, itemProj - availQty);               // col 6
+                const newVal = newPrc <= 0                                     // col 9
                     ? reqQty * lpp
                     : reqQty * newPrc;
-                const denom     = availQty + reqQty;
-                const wavg      = denom > 0 ? (newVal + stockVal) / denom : 0;    // col 10
+                const denom = availQty + reqQty;
+                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;    // col 10
 
-                const needsBuy  = reqQty > 0;
+                const needsBuy = reqQty > 0;
 
                 return `<tr class="${needsBuy ? 'row-deficit' : ''}">` +
                     `<td><span class="code-badge ${cls}">${escHtml(row.code)}</span></td>` +
@@ -2267,9 +2376,9 @@
                     `<td class="price-col">${fmtPrice(availPrc)}</td>` +
                     `<td class="price-col">${fmtPrice(stockVal)}</td>` +
                     `<td class="stock-net ${needsBuy ? 'deficit' : 'surplus'}">` +
-                        (needsBuy
-                            ? `<span style="font-size:0.7rem;margin-right:2px">▲</span>${fmtQty(reqQty)}`
-                            : `<span style="font-size:0.7rem;margin-right:2px">✓</span>${fmtQty(reqQty)}`) +
+                    (needsBuy
+                        ? `<span style="font-size:0.7rem;margin-right:2px">▲</span>${fmtQty(reqQty)}`
+                        : `<span style="font-size:0.7rem;margin-right:2px">✓</span>${fmtQty(reqQty)}`) +
                     `</td>` +
                     `<td class="price-col">${newPrc > 0 ? fmtPrice(newPrc) : '—'}</td>` +
                     `<td class="price-col">${fmtPrice(lpp)}</td>` +
@@ -2324,6 +2433,7 @@
             const rfItems = [];
             for (const entry of pxConverted) {
                 for (const [rawCode, qty] of Object.entries(entry)) {
+                    if (rawCode === '_md_code') continue;
                     let code = rawCode;
                     const cu = code.toUpperCase();
                     if (cu.startsWith('R&D') || cu.startsWith('FG')) code = cu;
@@ -2413,9 +2523,10 @@
             if (bomTabBtnEl) bomTabBtnEl.style.display = devMode ? '' : 'none';
 
 
-            // Fetch closing stock + new prices after showing results (non-blocking)
-            await Promise.all([fetchClosingStock(), fetchNewPrices()]);
+            // Fetch closing stock + new prices + PX formula costs after showing results (non-blocking)
+            await Promise.all([fetchClosingStock(), fetchNewPrices(), fetchPxFormulaCosts()]);
             renderFinalTable();  // re-render with stock + price data now loaded
+            buildPerFGCostTabs(bom, pxConverted); // populate the 3 new cost tabs
 
             // Persist final Excel to backend (non-blocking — fire & forget)
             if (currentMetadataId) {
@@ -2514,20 +2625,20 @@
             };
 
             const rows = finalData.map(r => {
-                const itemProj  = parseFloat(r.qty) || 0;
+                const itemProj = parseFloat(r.qty) || 0;
                 const stockEntry = lookupEntry(closingStock, r.code) || {};
-                const availQty  = parseFloat(stockEntry.qty ?? 0);
+                const availQty = parseFloat(stockEntry.qty ?? 0);
                 const closingPrcObj = parseFloat(stockEntry.closing_price);
                 const lastPurPrcObj = parseFloat(stockEntry.last_pur_prc || 0);
-                const availPrc  = (!isNaN(closingPrcObj) && closingPrcObj !== 0) ? closingPrcObj : lastPurPrcObj;
-                const lpp       = lastPurPrcObj;
-                const newPrc    = parseFloat(lookupEntry(newPrices, r.code) ?? 0);
-                const stockVal  = availQty * availPrc;
-                const reqQty    = Math.max(0, itemProj - availQty);
-                const newVal    = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
-                const denom     = availQty + reqQty;
-                const wavg      = denom > 0 ? (newVal + stockVal) / denom : 0;
-                const safeUom   = (r.uom || '').replace(/"/g, '""');
+                const availPrc = (!isNaN(closingPrcObj) && closingPrcObj !== 0) ? closingPrcObj : lastPurPrcObj;
+                const lpp = lastPurPrcObj;
+                const newPrc = parseFloat(lookupEntry(newPrices, r.code) ?? 0);
+                const stockVal = availQty * availPrc;
+                const reqQty = Math.max(0, itemProj - availQty);
+                const newVal = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
+                const denom = availQty + reqQty;
+                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
+                const safeUom = (r.uom || '').replace(/"/g, '""');
                 return [
                     `"${r.code}"`,
                     itemProj.toFixed(4),
@@ -2722,7 +2833,7 @@
                 }
                 if (!bomRes.ok) {
                     let errMsg = `Server error ${bomRes.status}`;
-                    try { const errJson = await bomRes.json(); errMsg = errJson.detail || errMsg; } catch(e){}
+                    try { const errJson = await bomRes.json(); errMsg = errJson.detail || errMsg; } catch (e) { }
                     throw new Error(errMsg);
                 }
 
@@ -2742,10 +2853,10 @@
 
                 // ── PASS 1: Populate fgQtyMap + aggregate total demand per item ────────
                 const totalDemandSA = {};  // { itemCode: totalQty } for RM/PK/LB/R&D items
-                const pxTotalQtySA  = {};  // { pxCode:   totalQty } for PX items across all FGs
+                const pxTotalQtySA = {};  // { pxCode:   totalQty } for PX items across all FGs
 
                 for (const row of bomData) {
-                    const fg       = row['Finish Good'] || '';
+                    const fg = row['Finish Good'] || '';
                     const itemCode = row['Item Code'] || '';
                     const itemProj = parseFloat(row['Item Projection'] || 0);
                     if (!fg || !itemCode || itemProj <= 0) continue;
@@ -2777,17 +2888,17 @@
                 const wapMapSA = {};
                 for (const [code, totalQty] of Object.entries(totalDemandSA)) {
                     const stockEntry = closingStock[code] || {};
-                    const avail      = parseFloat(stockEntry.qty          ?? 0);
+                    const avail = parseFloat(stockEntry.qty ?? 0);
                     const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
-                    const newPrc     = parseFloat(newPrices[code]          ?? 0);
-                    const { wavg }   = computeWeightedAvg(totalQty, avail, lastPurPrc, newPrc);
-                    wapMapSA[code]   = wavg;
+                    const newPrc = parseFloat(newPrices[code] ?? 0);
+                    const { wavg } = computeWeightedAvg(totalQty, avail, lastPurPrc, newPrc);
+                    wapMapSA[code] = wavg;
                 }
 
                 // ── PASS 4: Build fgMap using wapMapSA for RM/PK/LB, pxPrices for PX ─
                 for (const row of bomData) {
-                    const fg       = row['Finish Good'] || '';
-                    const fgName   = row['Finish Good Name'] || '';
+                    const fg = row['Finish Good'] || '';
+                    const fgName = row['Finish Good Name'] || '';
                     const itemCode = row['Item Code'] || '';
                     const itemProj = parseFloat(row['Item Projection'] || 0);
 
@@ -2816,8 +2927,8 @@
                 for (const [fg, grp] of Object.entries(fgMap)) {
                     const known = fgQtyMap[fg];
                     grp.projectedQty = known ?? 0;
-                    grp.totalValue   = grp.items.reduce((s, i) => s + i.value, 0);
-                    grp.perUnitCost  = known && known > 0 ? grp.totalValue / known : 0;
+                    grp.totalValue = grp.items.reduce((s, i) => s + i.value, 0);
+                    grp.perUnitCost = known && known > 0 ? grp.totalValue / known : 0;
                 }
 
                 fgCostData = Object.entries(fgMap).map(([fg, grp]) => ({
@@ -2958,7 +3069,7 @@
 
             // ── PASS 1: Aggregate total demand per item across all FGs ────────────
             const totalDemand = {};  // { itemCode: totalQty } for RM/PK/LB/R&D items
-            const pxTotalQty  = {};  // { pxCode:   totalQty } for PX items
+            const pxTotalQty = {};  // { pxCode:   totalQty } for PX items
             const fgMap = {};
 
             for (const row of bomData) {
@@ -2989,17 +3100,17 @@
             const wapMap = {};
             for (const [code, totalQty] of Object.entries(totalDemand)) {
                 const stockEntry = closingStock[code] || {};
-                const avail      = parseFloat(stockEntry.qty          ?? 0);
+                const avail = parseFloat(stockEntry.qty ?? 0);
                 const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
-                const newPrc     = parseFloat(newPrices[code]          ?? 0);
-                const { wavg }   = computeWeightedAvg(totalQty, avail, lastPurPrc, newPrc);
-                wapMap[code]     = wavg;
+                const newPrc = parseFloat(newPrices[code] ?? 0);
+                const { wavg } = computeWeightedAvg(totalQty, avail, lastPurPrc, newPrc);
+                wapMap[code] = wavg;
             }
 
             // ── PASS 4: Build fgMap using wapMap for RM/PK/LB, pxPrices for PX ──
             for (const row of bomData) {
-                const fg       = row['Finish Good'] || '';
-                const fgName   = row['Finish Good Name'] || '';
+                const fg = row['Finish Good'] || '';
+                const fgName = row['Finish Good Name'] || '';
                 const itemCode = row['Item Code'] || '';
                 const itemProj = parseFloat(row['Item Projection'] || 0);
 
@@ -3029,8 +3140,8 @@
             for (const [fg, grp] of Object.entries(fgMap)) {
                 const known = fgQtyMap[fg];
                 grp.projectedQty = known ?? 0;
-                grp.totalValue   = grp.items.reduce((s, i) => s + i.value, 0);
-                grp.perUnitCost  = known && known > 0 ? grp.totalValue / known : 0;
+                grp.totalValue = grp.items.reduce((s, i) => s + i.value, 0);
+                grp.perUnitCost = known && known > 0 ? grp.totalValue / known : 0;
             }
 
             fgCostData = Object.entries(fgMap).map(([fg, grp]) => ({
@@ -3118,6 +3229,18 @@
             if (finalTbody) finalTbody.innerHTML = '';
             const bomContainer = document.getElementById('bomTablesContainer');
             if (bomContainer) bomContainer.innerHTML = '';
+
+            // Clear new tabs
+            const tab1Body = document.getElementById('fgCostExclPxContainer');
+            if (tab1Body) tab1Body.innerHTML = '';
+            const tab2Body = document.getElementById('pxItemCostContainer');
+            if (tab2Body) tab2Body.innerHTML = '';
+            const tab3Body = document.getElementById('finalFgCostTableBody');
+            if (tab3Body) tab3Body.innerHTML = '';
+
+            // Reset active tab to final order list
+            switchTab(document.getElementById('finalTabBtn'), 'finalTable');
+
             const fgCostSATbody = document.getElementById('fgCostSATableBody');
             if (fgCostSATbody) fgCostSATbody.innerHTML = '';
             const fgCostSAStatus = document.getElementById('fgCostSAStatus');
@@ -3166,6 +3289,252 @@
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
+        }
+        // ── BUILD PER FG COST TABS (NEW TABS) ──────────────────────
+        function buildPerFGCostTabs(bom, pxConverted) {
+            if (!bom || !bom.length) return;
+
+            // ── PASS 1: Aggregate total demand per item across all FGs ────────────
+            const totalDemand = {};  // { itemCode: totalQty } for RM/PK/LB/R&D items
+            const pxTotalQty = {};  // { pxCode:   totalQty } for PX items
+
+            for (const row of bom) {
+                const itemCode = row['Item Code'] || '';
+                const itemProj = parseFloat(row['Item Projection'] || 0);
+                if (!itemCode || itemProj <= 0) continue;
+
+                if (itemCode.startsWith('PX')) {
+                    pxTotalQty[itemCode] = (pxTotalQty[itemCode] || 0) + itemProj;
+                } else {
+                    totalDemand[itemCode] = (totalDemand[itemCode] || 0) + itemProj;
+                }
+            }
+
+            // ── PASS 1b: Map MD codes to RM codes using pxConverted ────────
+            const mdToRmMap = {};
+            for (const entry of pxConverted) {
+                const mdCode = entry._md_code;
+                if (!mdCode) continue;
+                for (const [rawCode, qty] of Object.entries(entry)) {
+                    if (rawCode === '_md_code') continue;
+                    mdToRmMap[mdCode] = rawCode;
+                    break; // one-to-one mapping
+                }
+            }
+
+            // ── PASS 2: Expand PX → RM ingredients and add to totalDemand ────────
+            for (const [pxCode, pxQty] of Object.entries(pxTotalQty)) {
+                const ingredients = pxFormulaCosts[pxCode] || [];
+                for (const ing of ingredients) {
+                    const rmCode = mdToRmMap[ing.md_code] || ing.md_code;
+                    ing._rm_code = rmCode; // save for tab 2 rendering
+                    const rmQty = (ing.formula_pct / 100) * pxQty;
+                    totalDemand[rmCode] = (totalDemand[rmCode] || 0) + rmQty;
+                }
+            }
+
+            // ── PASS 3: Compute WAP once per item using total demand ──────────────
+            const wapMap = {};
+            const itemStats = {}; // To store stock, req qty, new value etc for Tab 1
+            for (const [code, totalQty] of Object.entries(totalDemand)) {
+                const stockEntry = closingStock[code] || {};
+                const avail = parseFloat(stockEntry.qty ?? 0);
+                const closingPrc = parseFloat(stockEntry.closing_price ?? 0);
+                const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
+                const availPrc = (!isNaN(closingPrc) && closingPrc !== 0) ? closingPrc : lastPurPrc;
+                const newPrc = parseFloat(newPrices[code] ?? 0);
+
+                const stockVal = avail * availPrc;
+                const reqQty = Math.max(0, totalQty - avail);
+                const lpp = lastPurPrc;
+                const newVal = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
+                const denom = avail + reqQty;
+                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
+
+                wapMap[code] = wavg;
+                itemStats[code] = { avail, availPrc, stockVal, reqQty, newPrc, lpp, newVal, wavg };
+            }
+
+            // ── PASS 4: Tab 2 - Compute per-PX cost using RM WAPs ────────────────
+            const pxUnitCosts = {};
+            let pxTabHtml = '';
+            for (const [pxCode, pxQty] of Object.entries(pxTotalQty)) {
+                const ingredients = pxFormulaCosts[pxCode] || [];
+                let pxTotalCost = 0; // Total cost for the entire pxQty
+                let rowsHtml = '';
+                for (const ing of ingredients) {
+                    const rmCode = ing._rm_code || ing.md_code;
+
+                    const stat = itemStats[rmCode] || { avail: 0, availPrc: 0, stockVal: 0, reqQty: 0, newPrc: 0, lpp: 0, newVal: 0, wavg: 0 };
+
+                    // The projected qty of this RM specifically for THIS PX's total demand
+                    const rmProjForThisPx = (ing.formula_pct / 100) * pxQty;
+                    const rmCostForThisPx = rmProjForThisPx * stat.wavg;
+                    pxTotalCost += rmCostForThisPx;
+
+                    rowsHtml += `
+                        <tr>
+                            <td><span class="code-badge ${codeToClass(rmCode)}">${escHtml(rmCode)}</span></td>
+                            <td class="num">${rmProjForThisPx.toFixed(2)}</td>
+                            <td class="num">${stat.avail.toFixed(2)}</td>
+                            <td class="num">${stat.availPrc.toFixed(2)}</td>
+                            <td class="num">${stat.stockVal.toFixed(2)}</td>
+                            <td class="num">${stat.reqQty.toFixed(2)}</td>
+                            <td class="num">${stat.newPrc.toFixed(2)}</td>
+                            <td class="num">${stat.lpp.toFixed(2)}</td>
+                            <td class="num">${stat.newVal.toFixed(2)}</td>
+                            <td class="num" style="font-weight:600;color:var(--crimson)">${stat.wavg.toFixed(2)}</td>
+                            <td class="num" style="font-weight:600;">${rmCostForThisPx.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }
+
+                const pxWap = pxQty > 0 ? pxTotalCost / pxQty : 0;
+                pxUnitCosts[pxCode] = pxWap; // This is the WAP per 1 unit of PX, used in Tab 1 and Tab 3
+
+                pxTabHtml += `
+                    <div class="fg-group">
+                        <div class="fg-group-header" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                                <h3 style="display:flex; align-items:center; gap:0.5rem; margin:0;"><span class="code-badge badge-px">${escHtml(pxCode)}</span> Total Projected Qty: ${pxQty.toFixed(2)}</h3>
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
+                                <div style="font-size:0.85rem; color:var(--text-dim)">Total Cost for PX: ₹${pxTotalCost.toFixed(2)}</div>
+                                <div style="font-size:1rem; font-weight:700; color:var(--crimson)">WAP per unit: ₹${pxWap.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div class="table-outer">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>RM Code</th>
+                                        <th style="text-align:right">Item Projection</th>
+                                        <th style="text-align:right">Available Stock Qty</th>
+                                        <th style="text-align:right">Available stock Price per unit</th>
+                                        <th style="text-align:right">Stock Value</th>
+                                        <th style="text-align:right">Required Qty</th>
+                                        <th style="text-align:right">New price</th>
+                                        <th style="text-align:right">Last purchase price</th>
+                                        <th style="text-align:right">New Value</th>
+                                        <th style="text-align:right">RM WAP (₹)</th>
+                                        <th style="text-align:right">Cost for this PX (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rowsHtml}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            const pxContainer = document.getElementById('pxItemCostContainer');
+            if (pxContainer) pxContainer.innerHTML = pxTabHtml;
+
+            // ── PASS 5: Build FG Groupings for Tab 1 & Tab 3 ──────────────────────
+            const fgMap = {};
+            for (const row of bom) {
+                const fg = row['Finish Good'] || '';
+                const fgName = row['Finish Good Name'] || '';
+                const itemCode = row['Item Code'] || '';
+                const itemProj = parseFloat(row['Item Projection'] || 0);
+
+                if (!fg || !itemCode || itemProj <= 0) continue;
+
+                if (!fgMap[fg]) {
+                    const known = fgQtyMap[fg] ?? 0;
+                    fgMap[fg] = { name: fgName, projectedQty: known, items: [], pxItems: [], nonPxCost: 0, pxCost: 0 };
+                }
+
+                if (itemCode.startsWith('PX')) {
+                    const pxCost = pxUnitCosts[itemCode] || 0;
+                    const totalCost = itemProj * pxCost;
+                    fgMap[fg].pxItems.push({ code: itemCode, proj: itemProj, unitCost: pxCost, totalCost });
+                    fgMap[fg].pxCost += totalCost;
+                } else {
+                    const stats = itemStats[itemCode] || { avail: 0, availPrc: 0, stockVal: 0, reqQty: 0, newPrc: 0, lpp: 0, newVal: 0, wavg: 0 };
+                    const fgCost = itemProj * stats.wavg;
+                    fgMap[fg].items.push({ code: itemCode, proj: itemProj, stats, fgCost });
+                    fgMap[fg].nonPxCost += fgCost;
+                }
+            }
+
+            // ── PASS 6: Render Tab 1 (Per FG Cost Excl PX) ────────────────────────
+            const tab1Container = document.getElementById('fgCostExclPxContainer');
+            if (tab1Container) {
+                let tab1Html = '';
+                for (const [fg, grp] of Object.entries(fgMap)) {
+                    if (grp.items.length === 0) continue;
+
+                    let rowsHtml = '';
+                    for (const item of grp.items) {
+                        const st = item.stats;
+                        rowsHtml += `
+                            <tr>
+                                <td><span class="code-badge ${codeToClass(item.code)}">${escHtml(item.code)}</span></td>
+                                <td class="num" style="font-weight:600; color:var(--text)">${item.proj.toFixed(4)}</td>
+                                <td class="num">${st.avail.toFixed(4)}</td>
+                                <td class="num">${st.stockVal.toFixed(2)}</td>
+                                <td class="num">${st.reqQty.toFixed(4)}</td>
+                                <td class="num">${st.newPrc.toFixed(2)}</td>
+                                <td class="num">${st.lpp.toFixed(2)}</td>
+                                <td class="num">${st.newVal.toFixed(2)}</td>
+                                <td class="wavg-col">${st.wavg.toFixed(2)}</td>
+                                <td class="price-col" style="font-weight:600;">₹${item.fgCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                        `;
+                    }
+
+                    tab1Html += `
+                        <div class="fg-group">
+                            <div class="fg-group-header">
+                                <h3><span class="code-badge badge-rm">${escHtml(fg)}</span> ${escHtml(grp.name)} <span style="color:var(--text-dim)">(Proj Qty: ${grp.projectedQty})</span></h3>
+                            </div>
+                            <div class="table-outer">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Item code</th>
+                                            <th style="text-align:right">Item projection</th>
+                                            <th style="text-align:right">Available Stock Qty</th>
+                                            <th style="text-align:right">Stock Value</th>
+                                            <th style="text-align:right">Required Qty</th>
+                                            <th style="text-align:right">New price</th>
+                                            <th style="text-align:right">Last purchase price</th>
+                                            <th style="text-align:right">New Value</th>
+                                            <th style="text-align:right">Weighted Avg</th>
+                                            <th style="text-align:right">Cost for this FG</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${rowsHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+                tab1Container.innerHTML = tab1Html;
+            }
+
+            // ── PASS 7: Render Tab 3 (Final Per FG Price) ────────────────────────
+            const tab3Body = document.getElementById('finalFgCostTableBody');
+            if (tab3Body) {
+                const tab3Rows = [];
+                for (const [fg, grp] of Object.entries(fgMap)) {
+                    const totalMatCost = grp.nonPxCost + grp.pxCost;
+                    const perUnitCost = grp.projectedQty > 0 ? (totalMatCost / grp.projectedQty) : 0;
+
+                    tab3Rows.push(`
+                        <tr>
+                            <td><span class="code-badge badge-rm">${escHtml(fg)}</span></td>
+                            <td>${escHtml(grp.name)}</td>
+                            <td class="num">${grp.projectedQty.toFixed(4)}</td>
+                            <td class="num">₹${grp.nonPxCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td class="num">₹${grp.pxCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td class="price-total">₹${totalMatCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td class="wavg-col">₹${perUnitCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                    `);
+                }
+                tab3Body.innerHTML = tab3Rows.join('');
+            }
         }
     </script>
 </body>
