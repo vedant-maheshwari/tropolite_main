@@ -2361,7 +2361,11 @@
                     ? reqQty * lpp
                     : reqQty * newPrc;
                 const denom = availQty + reqQty;
-                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;    // col 10
+                let wavg = denom > 0 ? (newVal + stockVal) / denom : 0;    // col 10
+                const codeUpper = (row.code || '').toUpperCase();
+                if (codeUpper.startsWith('RF') || codeUpper.startsWith('PM')) {
+                    wavg = 0;
+                }
 
                 const needsBuy = reqQty > 0;
 
@@ -2633,7 +2637,11 @@
                 const reqQty = Math.max(0, itemProj - availQty);
                 const newVal = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
                 const denom = availQty + reqQty;
-                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
+                let wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
+                const codeUpper = (r.code || '').toUpperCase();
+                if (codeUpper.startsWith('RF') || codeUpper.startsWith('PM')) {
+                    wavg = 0;
+                }
                 const safeUom = (r.uom || '').replace(/"/g, '""');
                 return [
                     `"${r.code}"`,
@@ -3379,7 +3387,11 @@
                 const reqQty = Math.max(0, itemProj - availQty);
                 const newVal = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
                 const denom = availQty + reqQty;
-                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
+                let wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
+                const codeUpper = (r.code || '').toUpperCase();
+                if (codeUpper.startsWith('RF') || codeUpper.startsWith('PM')) {
+                    wavg = 0;
+                }
                 globalWapMap[r.code] = wavg;
             }
 
