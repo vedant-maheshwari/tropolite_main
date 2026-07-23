@@ -1374,13 +1374,6 @@
                 <p id="resultsSubtitle">Final aggregated quantities to order</p>
             </div>
             <div class="results-actions">
-                <button class="btn btn-ghost btn-sm" onclick="downloadFinalCSV()">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Download CSV
-                </button>
                 <button class="btn btn-ghost btn-sm" id="newUploadResultsBtn" onclick="goToUpload()">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -1423,6 +1416,15 @@
         </div>
 
         <div class="table-section active" id="finalTable">
+            <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+                <button class="btn btn-primary btn-sm" onclick="downloadFinalCSV()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Final Order List CSV
+                </button>
+            </div>
             <div class="table-outer">
                 <table>
                     <thead>
@@ -1480,8 +1482,8 @@
         <!-- Per-FG BOM table (dev mode) -->
         <div class="table-section" id="bomTable">
             <div class="bom-table-actions" style="display: flex; justify-content: flex-end; margin-bottom: 1.25rem;">
-                <button class="btn btn-ghost btn-sm" onclick="downloadConsolidatedBomCSV()">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button class="btn btn-primary btn-sm" onclick="downloadConsolidatedBomCSV()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -1526,22 +1528,16 @@
         </div>
 
         <div class="table-section" id="finalFgCostTable">
-            <div class="table-outer">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>FG Code</th>
-                            <th>FG Name</th>
-                            <th style="text-align:right">Projected Qty</th>
-                            <th style="text-align:right">Total Non-PX Cost (₹)</th>
-                            <th style="text-align:right">Total PX Cost (₹)</th>
-                            <th style="text-align:right">Total Material Cost (₹)</th>
-                            <th style="text-align:right">Per Unit Cost (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="finalFgCostTableBody"></tbody>
-                </table>
+            <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+                <button class="btn btn-primary btn-sm" onclick="downloadFinalPerFgCSV()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Final Per FG Price CSV
+                </button>
             </div>
+            <div id="finalFgCostContainer"></div>
         </div>
 
     </div><!-- end #resultsView -->
@@ -2686,6 +2682,57 @@
             a.click();
         }
 
+        function downloadFinalPerFgCSV() {
+            if (!globalFgMap) return;
+
+            let lines = [];
+
+            for (const [fg, grp] of Object.entries(globalFgMap)) {
+                const allItems = [...grp.items, ...grp.pxItems];
+                if (allItems.length === 0) continue;
+
+                const cols = Object.keys(allItems[0].rawRow);
+                const header = [...cols, 'WEIGHTED AVG', 'COST FOR THIS FG'];
+
+                // Add a row to indicate the FG at the top
+                lines.push(`"FG: ${fg} - ${grp.name}"`);
+                lines.push(`"Projected Qty: ${grp.projectedQty}"`);
+                lines.push(header.map(c => `"${c.replace(/"/g, '""')}"`).join(','));
+
+                const csvRows = allItems.map(item => {
+                    const rowWap = item.wavg !== undefined ? item.wavg : item.unitCost;
+                    const rowFgCost = item.fgCost !== undefined ? item.fgCost : item.totalCost;
+
+                    const rowData = cols.map(c => {
+                        const val = item.rawRow[c] ?? '';
+                        let strVal = String(val);
+                        if (strVal.includes('"') || strVal.includes(',') || strVal.includes('\n') || strVal.includes('\r')) {
+                            strVal = '"' + strVal.replace(/"/g, '""') + '"';
+                        }
+                        return strVal;
+                    });
+                    rowData.push(rowWap.toFixed(2));
+                    rowData.push(rowFgCost.toFixed(2));
+                    return rowData.join(',');
+                });
+
+                lines.push(...csvRows);
+
+                const totalMatCost = grp.nonPxCost + grp.pxCost;
+                const perUnitCost = grp.projectedQty > 0 ? (totalMatCost / grp.projectedQty) : 0;
+
+                lines.push(`"Total Cost for FG: ${totalMatCost.toFixed(2)}"`);
+                lines.push(`"Per Unit Cost: ${perUnitCost.toFixed(2)}"`);
+                lines.push(""); // empty line between FGs
+            }
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `final_per_fg_price_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        }
+
         // ── FORMULA LEGEND TOGGLE ─────────────────────────────────
         function toggleLegend(bodyId, toggleEl) {
             const body = document.getElementById(bodyId);
@@ -2697,6 +2744,7 @@
         let pxPrices = {};        // { PX_CODE: price }  — from user-uploaded PX price Excel
         let pxFormulaCosts = {};  // { PX_CODE: [{md_code, formula_qty, formula_pct}] } — from backend
         let fgCostData = [];      // final per-FG cost rows
+        let globalFgMap = null;   // To store the FG grouping for Tab 3 CSV download
         let currentFgCostFileSA = null;
         let currentPxPriceFileSA = null;
 
@@ -3305,9 +3353,34 @@
 
                 if (itemCode.startsWith('PX')) {
                     pxTotalQty[itemCode] = (pxTotalQty[itemCode] || 0) + itemProj;
-                } else {
-                    totalDemand[itemCode] = (totalDemand[itemCode] || 0) + itemProj;
                 }
+            }
+
+            // ── PASS 1a: Grab global WAP from finalData ────────────────────────
+            const globalWapMap = {};
+            const lookupEntry = (map, code) => {
+                if (!map || !code) return undefined;
+                if (map[code] !== undefined) return map[code];
+                const clean = String(code).trim().toUpperCase();
+                if (map[clean] !== undefined) return map[clean];
+                const key = Object.keys(map).find(k => String(k).trim().toUpperCase() === clean);
+                return key !== undefined ? map[key] : undefined;
+            };
+            for (const r of finalData) {
+                const itemProj = parseFloat(r.qty) || 0;
+                const stockEntry = lookupEntry(closingStock, r.code) || {};
+                const availQty = parseFloat(stockEntry.qty ?? 0);
+                const closingPrcObj = parseFloat(stockEntry.closing_price);
+                const lastPurPrcObj = parseFloat(stockEntry.last_pur_prc || 0);
+                const availPrc = (!isNaN(closingPrcObj) && closingPrcObj !== 0) ? closingPrcObj : lastPurPrcObj;
+                const lpp = lastPurPrcObj;
+                const newPrc = parseFloat(lookupEntry(newPrices, r.code) ?? 0);
+                const stockVal = availQty * availPrc;
+                const reqQty = Math.max(0, itemProj - availQty);
+                const newVal = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
+                const denom = availQty + reqQty;
+                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
+                globalWapMap[r.code] = wavg;
             }
 
             // ── PASS 1b: Map MD codes to RM codes using pxConverted ────────
@@ -3322,38 +3395,7 @@
                 }
             }
 
-            // ── PASS 2: Expand PX → RM ingredients and add to totalDemand ────────
-            for (const [pxCode, pxQty] of Object.entries(pxTotalQty)) {
-                const ingredients = pxFormulaCosts[pxCode] || [];
-                for (const ing of ingredients) {
-                    const rmCode = mdToRmMap[ing.md_code] || ing.md_code;
-                    ing._rm_code = rmCode; // save for tab 2 rendering
-                    const rmQty = (ing.formula_pct / 100) * pxQty;
-                    totalDemand[rmCode] = (totalDemand[rmCode] || 0) + rmQty;
-                }
-            }
-
-            // ── PASS 3: Compute WAP once per item using total demand ──────────────
-            const wapMap = {};
-            const itemStats = {}; // To store stock, req qty, new value etc for Tab 1
-            for (const [code, totalQty] of Object.entries(totalDemand)) {
-                const stockEntry = closingStock[code] || {};
-                const avail = parseFloat(stockEntry.qty ?? 0);
-                const closingPrc = parseFloat(stockEntry.closing_price ?? 0);
-                const lastPurPrc = parseFloat(stockEntry.last_pur_prc ?? 0);
-                const availPrc = (!isNaN(closingPrc) && closingPrc !== 0) ? closingPrc : lastPurPrc;
-                const newPrc = parseFloat(newPrices[code] ?? 0);
-
-                const stockVal = avail * availPrc;
-                const reqQty = Math.max(0, totalQty - avail);
-                const lpp = lastPurPrc;
-                const newVal = newPrc <= 0 ? reqQty * lpp : reqQty * newPrc;
-                const denom = avail + reqQty;
-                const wavg = denom > 0 ? (newVal + stockVal) / denom : 0;
-
-                wapMap[code] = wavg;
-                itemStats[code] = { avail, availPrc, stockVal, reqQty, newPrc, lpp, newVal, wavg };
-            }
+            // (Removed redundant PASS 3 since we now use globalWapMap)
 
             // ── PASS 4: Tab 2 - Compute per-PX cost using RM WAPs ────────────────
             const pxUnitCosts = {};
@@ -3363,28 +3405,21 @@
                 let pxTotalCost = 0; // Total cost for the entire pxQty
                 let rowsHtml = '';
                 for (const ing of ingredients) {
-                    const rmCode = ing._rm_code || ing.md_code;
+                    const rmCode = ing._rm_code || mdToRmMap[ing.md_code] || ing.md_code;
 
-                    const stat = itemStats[rmCode] || { avail: 0, availPrc: 0, stockVal: 0, reqQty: 0, newPrc: 0, lpp: 0, newVal: 0, wavg: 0 };
+                    const wavg = globalWapMap[rmCode] || 0;
 
                     // The projected qty of this RM specifically for THIS PX's total demand
                     const rmProjForThisPx = (ing.formula_pct / 100) * pxQty;
-                    const rmCostForThisPx = rmProjForThisPx * stat.wavg;
+                    const rmCostForThisPx = rmProjForThisPx * wavg;
                     pxTotalCost += rmCostForThisPx;
 
                     rowsHtml += `
                         <tr>
                             <td><span class="code-badge ${codeToClass(rmCode)}">${escHtml(rmCode)}</span></td>
-                            <td class="num">${rmProjForThisPx.toFixed(2)}</td>
-                            <td class="num">${stat.avail.toFixed(2)}</td>
-                            <td class="num">${stat.availPrc.toFixed(2)}</td>
-                            <td class="num">${stat.stockVal.toFixed(2)}</td>
-                            <td class="num">${stat.reqQty.toFixed(2)}</td>
-                            <td class="num">${stat.newPrc.toFixed(2)}</td>
-                            <td class="num">${stat.lpp.toFixed(2)}</td>
-                            <td class="num">${stat.newVal.toFixed(2)}</td>
-                            <td class="num" style="font-weight:600;color:var(--crimson)">${stat.wavg.toFixed(2)}</td>
-                            <td class="num" style="font-weight:600;">${rmCostForThisPx.toFixed(2)}</td>
+                            <td class="num">${rmProjForThisPx.toFixed(4)}</td>
+                            <td class="num" style="font-weight:600;color:var(--crimson)">₹${wavg.toFixed(2)}</td>
+                            <td class="num" style="font-weight:600;">₹${rmCostForThisPx.toFixed(2)}</td>
                         </tr>
                     `;
                 }
@@ -3409,13 +3444,6 @@
                                     <tr>
                                         <th>RM Code</th>
                                         <th style="text-align:right">Item Projection</th>
-                                        <th style="text-align:right">Available Stock Qty</th>
-                                        <th style="text-align:right">Available stock Price per unit</th>
-                                        <th style="text-align:right">Stock Value</th>
-                                        <th style="text-align:right">Required Qty</th>
-                                        <th style="text-align:right">New price</th>
-                                        <th style="text-align:right">Last purchase price</th>
-                                        <th style="text-align:right">New Value</th>
                                         <th style="text-align:right">RM WAP (₹)</th>
                                         <th style="text-align:right">Cost for this PX (₹)</th>
                                     </tr>
@@ -3447,12 +3475,12 @@
                 if (itemCode.startsWith('PX')) {
                     const pxCost = pxUnitCosts[itemCode] || 0;
                     const totalCost = itemProj * pxCost;
-                    fgMap[fg].pxItems.push({ code: itemCode, proj: itemProj, unitCost: pxCost, totalCost });
+                    fgMap[fg].pxItems.push({ code: itemCode, proj: itemProj, unitCost: pxCost, totalCost, rawRow: row });
                     fgMap[fg].pxCost += totalCost;
                 } else {
-                    const stats = itemStats[itemCode] || { avail: 0, availPrc: 0, stockVal: 0, reqQty: 0, newPrc: 0, lpp: 0, newVal: 0, wavg: 0 };
-                    const fgCost = itemProj * stats.wavg;
-                    fgMap[fg].items.push({ code: itemCode, proj: itemProj, stats, fgCost });
+                    const wavg = globalWapMap[itemCode] || 0;
+                    const fgCost = itemProj * wavg;
+                    fgMap[fg].items.push({ code: itemCode, proj: itemProj, wavg, fgCost, rawRow: row });
                     fgMap[fg].nonPxCost += fgCost;
                 }
             }
@@ -3464,23 +3492,21 @@
                 for (const [fg, grp] of Object.entries(fgMap)) {
                     if (grp.items.length === 0) continue;
 
+                    const cols = Object.keys(grp.items[0].rawRow);
                     let rowsHtml = '';
                     for (const item of grp.items) {
-                        const st = item.stats;
-                        rowsHtml += `
-                            <tr>
-                                <td><span class="code-badge ${codeToClass(item.code)}">${escHtml(item.code)}</span></td>
-                                <td class="num" style="font-weight:600; color:var(--text)">${item.proj.toFixed(4)}</td>
-                                <td class="num">${st.avail.toFixed(4)}</td>
-                                <td class="num">${st.stockVal.toFixed(2)}</td>
-                                <td class="num">${st.reqQty.toFixed(4)}</td>
-                                <td class="num">${st.newPrc.toFixed(2)}</td>
-                                <td class="num">${st.lpp.toFixed(2)}</td>
-                                <td class="num">${st.newVal.toFixed(2)}</td>
-                                <td class="wavg-col">${st.wavg.toFixed(2)}</td>
-                                <td class="price-col" style="font-weight:600;">₹${item.fgCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            </tr>
-                        `;
+                        rowsHtml += `<tr>${cols.map(c => {
+                            const val = item.rawRow[c] ?? '';
+                            if (c === 'Item Code' || c === 'ItemCode' || c === 'Child Code' || c === 'Item_Code') {
+                                const code = String(val);
+                                return `<td><span class="code-badge ${codeToClass(code)}">${escHtml(code)}</span></td>`;
+                            }
+                            const isNum = ['qty', 'required', 'level', 'projection', 'req'].some(h => c.toLowerCase().includes(h));
+                            return `<td${isNum ? ' class="num"' : ''}>${escHtml(String(val))}</td>`;
+                        }).join('')}
+                        <td class="wavg-col">₹${item.wavg.toFixed(2)}</td>
+                        <td class="price-col" style="font-weight:600;">₹${item.fgCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>`;
                     }
 
                     tab1Html += `
@@ -3492,16 +3518,9 @@
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>Item code</th>
-                                            <th style="text-align:right">Item projection</th>
-                                            <th style="text-align:right">Available Stock Qty</th>
-                                            <th style="text-align:right">Stock Value</th>
-                                            <th style="text-align:right">Required Qty</th>
-                                            <th style="text-align:right">New price</th>
-                                            <th style="text-align:right">Last purchase price</th>
-                                            <th style="text-align:right">New Value</th>
-                                            <th style="text-align:right">Weighted Avg</th>
-                                            <th style="text-align:right">Cost for this FG</th>
+                                            ${Object.keys(grp.items[0].rawRow).map(c => `<th>${escHtml(c)}</th>`).join('')}
+                                            <th style="text-align:right">WEIGHTED AVG</th>
+                                            <th style="text-align:right">COST FOR THIS FG</th>
                                         </tr>
                                     </thead>
                                     <tbody>${rowsHtml}</tbody>
@@ -3514,26 +3533,63 @@
             }
 
             // ── PASS 7: Render Tab 3 (Final Per FG Price) ────────────────────────
-            const tab3Body = document.getElementById('finalFgCostTableBody');
-            if (tab3Body) {
-                const tab3Rows = [];
+            globalFgMap = fgMap;
+            const tab3Container = document.getElementById('finalFgCostContainer');
+            if (tab3Container) {
+                let tab3Html = '';
                 for (const [fg, grp] of Object.entries(fgMap)) {
+                    const allItems = [...grp.items, ...grp.pxItems];
+                    if (allItems.length === 0) continue;
+
+                    const cols = Object.keys(allItems[0].rawRow);
+                    let rowsHtml = '';
+                    for (const item of allItems) {
+                        const rowWap = item.wavg !== undefined ? item.wavg : item.unitCost;
+                        const rowFgCost = item.fgCost !== undefined ? item.fgCost : item.totalCost;
+                        rowsHtml += `<tr>${cols.map(c => {
+                            const val = item.rawRow[c] ?? '';
+                            if (c === 'Item Code' || c === 'ItemCode' || c === 'Child Code' || c === 'Item_Code') {
+                                const code = String(val);
+                                return `<td><span class="code-badge ${codeToClass(code)}">${escHtml(code)}</span></td>`;
+                            }
+                            const isNum = ['qty', 'required', 'level', 'projection', 'req'].some(h => c.toLowerCase().includes(h));
+                            return `<td${isNum ? ' class="num"' : ''}>${escHtml(String(val))}</td>`;
+                        }).join('')}
+                        <td class="wavg-col">₹${rowWap.toFixed(2)}</td>
+                        <td class="price-col" style="font-weight:600;">₹${rowFgCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>`;
+                    }
+
                     const totalMatCost = grp.nonPxCost + grp.pxCost;
                     const perUnitCost = grp.projectedQty > 0 ? (totalMatCost / grp.projectedQty) : 0;
 
-                    tab3Rows.push(`
-                        <tr>
-                            <td><span class="code-badge badge-rm">${escHtml(fg)}</span></td>
-                            <td>${escHtml(grp.name)}</td>
-                            <td class="num">${grp.projectedQty.toFixed(4)}</td>
-                            <td class="num">₹${grp.nonPxCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td class="num">₹${grp.pxCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td class="price-total">₹${totalMatCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td class="wavg-col">₹${perUnitCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                    `);
+                    tab3Html += `
+                        <div class="fg-group">
+                            <div class="fg-group-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                                    <h3 style="display:flex; align-items:center; gap:0.5rem; margin:0;"><span class="code-badge badge-rm">${escHtml(fg)}</span> ${escHtml(grp.name)} <span style="color:var(--text-dim)">(Proj Qty: ${grp.projectedQty.toFixed(2)})</span></h3>
+                                </div>
+                                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
+                                    <div style="font-size:0.85rem; color:var(--text-dim)">Total Cost for FG: ₹${totalMatCost.toFixed(2)}</div>
+                                    <div style="font-size:1rem; font-weight:700; color:var(--crimson)">Per Unit Cost: ₹${perUnitCost.toFixed(2)}</div>
+                                </div>
+                            </div>
+                            <div class="table-outer">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            ${Object.keys(allItems[0].rawRow).map(c => `<th>${escHtml(c)}</th>`).join('')}
+                                            <th style="text-align:right">WEIGHTED AVG</th>
+                                            <th style="text-align:right">COST FOR THIS FG</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${rowsHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
                 }
-                tab3Body.innerHTML = tab3Rows.join('');
+                tab3Container.innerHTML = tab3Html;
             }
         }
     </script>
